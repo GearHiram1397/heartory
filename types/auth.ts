@@ -1,0 +1,24 @@
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+    createdAt?: string;
+    updatedAt?: string;
+  }
+  
+  export interface AuthState {
+    user: User | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    error: string | null;
+    
+    // Actions
+    login: (email: string, password: string) => Promise<void>;
+    register: (name: string, email: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
+    resetPassword: (email: string) => Promise<void>;
+    clearError: () => void;
+    initAuth: () => Promise<void>;
+    updateProfile: (userData: Partial<User>) => Promise<void>;
+  }
