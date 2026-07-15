@@ -16,10 +16,6 @@ import { ThemedText } from '@/components/ThemedText';
 import { StorageUsageBar } from '@/components/StorageUsageBar';
 import { SubscriptionBadge } from '@/components/SubscriptionBadge';
 import { useFocusEffect } from 'expo-router';
-import { enableMockServices } from '@/services/mockService';
-
-// Enable mock services for demo
-enableMockServices();
 
 export default function HomeScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);

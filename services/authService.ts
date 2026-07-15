@@ -1,109 +1,129 @@
 import { User } from '@/types/auth';
-import { apiRequest } from './api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { mockApiService } from './mockService';
+import { supabase } from '@/lib/supabase';
+import type { Tables } from '@/types/database.types';
 
-// Flag to use mock data instead of real API
-const USE_MOCK = true;
+type ProfileRow = Tables<'profiles'>;
 
-interface LoginResponse {
-  user: User;
-  token: string;
-}
+// Map a Supabase auth user + profile row into the app's User model.
+const mapUser = (
+  authUser: { id: string; email?: string | null; user_metadata?: Record<string, any> },
+  profile?: ProfileRow | null,
+  fallbackName?: string
+): User => ({
+  id: authUser.id,
+  email: profile?.email ?? authUser.email ?? '',
+  name:
+    profile?.name ||
+    fallbackName ||
+    (authUser.user_metadata?.name as string | undefined) ||
+    '',
+  avatar: profile?.avatar_url ?? undefined,
+  createdAt: profile?.created_at,
+  updatedAt: profile?.updated_at,
+});
 
-interface RegisterResponse {
-  user: User;
-  token: string;
-}
+const fetchProfile = async (userId: string): Promise<ProfileRow | null> => {
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle();
+  return data;
+};
 
 export const authService = {
   login: async (email: string, password: string): Promise<User> => {
-    if (USE_MOCK) {
-      return mockApiService.auth.login(email, password);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (error) {
+      // Normalize Supabase's generic message for a gentler tone.
+      if (error.message.toLowerCase().includes('invalid login')) {
+        throw new Error('Invalid email or password');
+      }
+      if (error.message.toLowerCase().includes('not confirmed')) {
+        throw new Error('Please confirm your email address before signing in.');
+      }
+      throw new Error(error.message);
     }
-    
-    try {
-      const response = await apiRequest<LoginResponse>('/auth/login', 'POST', {
-        email,
-        password,
-      });
-      
-      // Store the auth token
-      await AsyncStorage.setItem('auth_token', response.token);
-      
-      return response.user;
-    } catch (error) {
-      throw error;
-    }
+    const profile = await fetchProfile(data.user.id);
+    return mapUser(data.user, profile);
   },
-  
+
   register: async (name: string, email: string, password: string): Promise<User> => {
-    if (USE_MOCK) {
-      return mockApiService.auth.register(name, email, password);
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { name: name.trim() } },
+    });
+    if (error) {
+      if (error.message.toLowerCase().includes('already registered')) {
+        throw new Error('Email already in use');
+      }
+      throw new Error(error.message);
     }
-    
-    try {
-      const response = await apiRequest<RegisterResponse>('/auth/register', 'POST', {
-        name,
-        email,
-        password,
-      });
-      
-      // Store the auth token
-      await AsyncStorage.setItem('auth_token', response.token);
-      
-      return response.user;
-    } catch (error) {
-      throw error;
+
+    // With email confirmation enabled, signUp returns no session until the
+    // user clicks the confirmation link. Surface a clear next step.
+    if (!data.session) {
+      throw new Error(
+        'Account created! Please check your email to confirm your address, then sign in.'
+      );
     }
+
+    const profile = data.user ? await fetchProfile(data.user.id) : null;
+    return mapUser(data.user!, profile, name.trim());
   },
-  
+
   resetPassword: async (email: string): Promise<void> => {
-    if (USE_MOCK) {
-      // Mock implementation - just delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return;
+    const redirectTo =
+      process.env.EXPO_PUBLIC_PASSWORD_RESET_URL || undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo,
+    });
+    // Do not reveal whether an account exists; only throw on transport errors.
+    if (error && !error.message.toLowerCase().includes('user not found')) {
+      throw new Error(error.message);
     }
-    
-    await apiRequest('/auth/reset-password', 'POST', { email });
   },
-  
+
   logout: async (): Promise<void> => {
-    if (USE_MOCK) {
-      // Mock implementation - just clear token
-      await AsyncStorage.removeItem('auth_token');
-      return;
-    }
-    
-    try {
-      // Call logout endpoint to invalidate token on server
-      await apiRequest('/auth/logout', 'POST');
-    } catch (error) {
-      // Even if the API call fails, we still want to clear local storage
-      console.error('Logout API error:', error);
-    } finally {
-      // Clear the auth token
-      await AsyncStorage.removeItem('auth_token');
-    }
+    await supabase.auth.signOut();
   },
-  
+
   getCurrentUser: async (): Promise<User | null> => {
-    if (USE_MOCK) {
-      return mockApiService.auth.getCurrentUser();
-    }
-    
-    try {
-      return await apiRequest<User>('/auth/me', 'GET', undefined, 'current_user');
-    } catch (error) {
-      return null;
-    }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+    const profile = await fetchProfile(session.user.id);
+    return mapUser(session.user, profile);
   },
-  
+
   updateProfile: async (userData: Partial<User>): Promise<User> => {
-    if (USE_MOCK) {
-      return mockApiService.auth.updateProfile(userData);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) throw new Error('You must be signed in to update your profile.');
+
+    const updates: Partial<ProfileRow> = {};
+    if (userData.name !== undefined) updates.name = userData.name;
+    if (userData.avatar !== undefined) updates.avatar_url = userData.avatar;
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', user.id)
+      .select('*')
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Keep auth metadata name in sync for convenience.
+    if (userData.name !== undefined) {
+      await supabase.auth.updateUser({ data: { name: userData.name } });
     }
-    
-    return apiRequest<User>('/auth/profile', 'PUT', userData, 'current_user');
-  }
+
+    return mapUser(user, data);
+  },
 };
