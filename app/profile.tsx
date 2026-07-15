@@ -178,7 +178,7 @@ export default function ProfileScreen() {
             <ThemedCard style={styles.menuCard}>
               <TouchableOpacity style={styles.menuItem}>
                 <Heart size={20} color={theme.colors.text} style={styles.menuIcon} />
-                <ThemedText style={styles.menuText}>About Memora</ThemedText>
+                <ThemedText style={styles.menuText}>About Heartory</ThemedText>
               </TouchableOpacity>
             </ThemedCard>
           </View>

@@ -105,7 +105,7 @@ export default function RegisterScreen() {
             >
               <Heart size={32} color="#fff" />
             </LinearGradient>
-            <Text style={styles.appName}>Memora</Text>
+            <Text style={styles.appName}>Heartory</Text>
             <Text style={styles.tagline}>Preserve what matters most</Text>
           </View>
           

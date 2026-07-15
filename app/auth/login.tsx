@@ -92,7 +92,7 @@ export default function LoginScreen() {
             >
               <Heart size={32} color="#fff" />
             </LinearGradient>
-            <ThemedText preset="title" style={styles.appName}>Memora</ThemedText>
+            <ThemedText preset="title" style={styles.appName}>Heartory</ThemedText>
             <ThemedText variant="secondary" style={styles.tagline}>Preserve what matters most</ThemedText>
           </View>
           

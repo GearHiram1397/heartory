@@ -157,7 +157,7 @@ export const useBillingStore = create<BillingState>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name: 'memora-billing-storage',
+      name: 'heartory-billing-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
         paymentMethods: state.paymentMethods,
