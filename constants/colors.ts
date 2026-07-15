@@ -43,3 +43,27 @@ export const shadows = {
     elevation: 4,
   },
 };
+
+// Light/dark palette in the shape expected by the Expo starter-template
+// helpers (Themed.tsx, EditScreenInfo.tsx, the legacy (tabs) group). Those
+// files are unused by the real app and slated for removal — this default
+// export only exists so the project typechecks until they are deleted.
+const tintColorLight = colors.rosewood;
+const tintColorDark = '#fff';
+
+export default {
+  light: {
+    text: colors.text,
+    background: colors.background,
+    tint: tintColorLight,
+    tabIconDefault: colors.textLight,
+    tabIconSelected: tintColorLight,
+  },
+  dark: {
+    text: '#fff',
+    background: '#000',
+    tint: tintColorDark,
+    tabIconDefault: colors.textLight,
+    tabIconSelected: tintColorDark,
+  },
+};
