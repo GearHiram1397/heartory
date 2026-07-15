@@ -13,12 +13,12 @@ interface MemoryState {
   // Actions
   fetchVaults: () => Promise<void>;
   fetchVault: (id: string) => Promise<MemoryVault | undefined>;
-  addVault: (vault: Omit<MemoryVault, 'id' | 'memories' | 'sharedWith' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addVault: (vault: Omit<MemoryVault, 'id' | 'memories' | 'sharedWith' | 'createdAt' | 'updatedAt' | 'ownerId'>) => Promise<void>;
   updateVault: (id: string, updates: Partial<Omit<MemoryVault, 'id' | 'memories'>>) => Promise<void>;
   deleteVault: (id: string) => Promise<void>;
   selectVault: (id: string | null) => void;
-  
-  addMemory: (vaultId: string, memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+
+  addMemory: (vaultId: string, memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>, storageBytes?: number) => Promise<void>;
   updateMemory: (vaultId: string, memoryId: string, updates: Partial<Omit<Memory, 'id'>>) => Promise<void>;
   deleteMemory: (vaultId: string, memoryId: string) => Promise<void>;
   
@@ -130,11 +130,11 @@ export const useMemoryStore = create<MemoryState>()(
       
       selectVault: (id) => set({ selectedVaultId: id }),
       
-      addMemory: async (vaultId, memory) => {
+      addMemory: async (vaultId, memory, storageBytes) => {
         set({ isLoading: true, error: null });
-        
+
         try {
-          const newMemory = await memoryService.createMemory(vaultId, memory);
+          const newMemory = await memoryService.createMemory(vaultId, memory, storageBytes);
           
           set(state => ({
             vaults: state.vaults.map(vault => 
@@ -262,7 +262,7 @@ export const useMemoryStore = create<MemoryState>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name: 'memora-storage',
+      name: 'heartory-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
         vaults: state.vaults,

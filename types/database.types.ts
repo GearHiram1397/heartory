@@ -325,6 +325,10 @@ export type Database = {
       can_edit_vault: { Args: { v_id: string }; Returns: boolean }
       is_vault_owner: { Args: { v_id: string }; Returns: boolean }
       shares_vault_with: { Args: { target: string }; Returns: boolean }
+      share_vault_by_email: {
+        Args: { p_vault_id: string; p_email: string; p_role?: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

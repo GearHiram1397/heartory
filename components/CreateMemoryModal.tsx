@@ -36,6 +36,7 @@ export const CreateMemoryModal: React.FC<CreateMemoryModalProps> = ({
 }) => {
   const [type, setType] = useState<MemoryType>('photo');
   const [content, setContent] = useState('');
+  const [mediaBytes, setMediaBytes] = useState(0);
   const [caption, setCaption] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [tags, setTags] = useState('');
@@ -74,26 +75,30 @@ export const CreateMemoryModal: React.FC<CreateMemoryModalProps> = ({
         setIsUploading(true);
         setContentError('');
         
-        // Upload the media to the server
-        let mediaUrl;
-        
+        // Upload the media to the private vault bucket. The returned storage
+        // path becomes the memory content; the byte size feeds quota checks.
+        let uploaded;
+
         if (type === 'photo') {
-          mediaUrl = await uploadService.uploadImage(
+          uploaded = await uploadService.uploadImage(
+            vaultId,
             result.assets[0].uri,
             (progress) => {
               setUploadProgress(progress.progress);
             }
           );
         } else if (type === 'video') {
-          mediaUrl = await uploadService.uploadVideo(
+          uploaded = await uploadService.uploadVideo(
+            vaultId,
             result.assets[0].uri,
             (progress) => {
               setUploadProgress(progress.progress);
             }
           );
         }
-        
-        setContent(mediaUrl || '');
+
+        setContent(uploaded?.path || '');
+        setMediaBytes(uploaded?.bytes || 0);
       } catch (error) {
         console.error('Media upload error:', error);
         setContentError('Failed to upload media. Please try again.');
@@ -127,14 +132,18 @@ export const CreateMemoryModal: React.FC<CreateMemoryModalProps> = ({
       .filter(tag => tag.length > 0);
     
     try {
-      await addMemory(vaultId, {
-        type,
-        content,
-        caption,
-        date,
-        tags: tagsArray,
-      });
-      
+      await addMemory(
+        vaultId,
+        {
+          type,
+          content,
+          caption,
+          date,
+          tags: tagsArray,
+        },
+        mediaBytes
+      );
+
       // Reset form and close modal
       handleCancel();
     } catch (err) {
@@ -146,6 +155,7 @@ export const CreateMemoryModal: React.FC<CreateMemoryModalProps> = ({
     // Reset form and close modal
     setType('photo');
     setContent('');
+    setMediaBytes(0);
     setCaption('');
     setDate(new Date().toISOString().split('T')[0]);
     setTags('');
