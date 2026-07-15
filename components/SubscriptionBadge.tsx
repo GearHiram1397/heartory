@@ -1,101 +1,66 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { Crown, Sparkles } from 'lucide-react-native';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useActiveTheme } from '@/store/themeStore';
 import { ThemedText } from './ThemedText';
-import { formatStorageSize } from '@/constants/subscriptions';
 
-interface StorageUsageBarProps {
-  compact?: boolean;
+interface SubscriptionBadgeProps {
+  size?: 'small' | 'medium';
 }
 
-export const StorageUsageBar: React.FC<StorageUsageBarProps> = ({ compact = false }) => {
+// A small pill showing the user's current plan. Free plans get a muted look;
+// paid plans get an accent colour + icon.
+export const SubscriptionBadge: React.FC<SubscriptionBadgeProps> = ({ size = 'medium' }) => {
   const { currentSubscription, plans } = useSubscriptionStore();
   const theme = useActiveTheme();
-  
-  if (!currentSubscription) {
-    return null;
-  }
-  
-  // Find the current plan
-  const currentPlan = plans.find(plan => plan.id === currentSubscription.planId);
-  if (!currentPlan) {
-    return null;
-  }
-  
-  const storageUsed = currentSubscription.storageUsed;
-  const storageLimit = currentPlan.storageLimit;
-  const usagePercentage = Math.min(100, (storageUsed / storageLimit) * 100);
-  
-  // Determine color based on usage
-  let barColor = theme.colors.primary;
-  if (usagePercentage > 90) {
-    barColor = theme.colors.error;
-  } else if (usagePercentage > 75) {
-    barColor = theme.colors.warning;
-  }
-  
+
+  const planId = currentSubscription?.planId ?? 'free';
+  const plan = plans.find((p) => p.id === planId);
+  const label = plan?.name ?? 'Free';
+
+  const isPaid = planId !== 'free';
+  const isSmall = size === 'small';
+
+  const backgroundColor = isPaid ? theme.colors.primary : theme.colors.backgroundSecondary;
+  const textColor = isPaid ? '#fff' : theme.colors.textSecondary;
+  const iconSize = isSmall ? 12 : 14;
+
   return (
-    <View style={styles.container}>
-      {!compact && (
-        <View style={styles.labelContainer}>
-          <ThemedText variant="secondary" style={styles.label}>
-            Storage
-          </ThemedText>
-          <ThemedText variant="secondary" style={styles.usageText}>
-            {formatStorageSize(storageUsed)} of {formatStorageSize(storageLimit)} used
-          </ThemedText>
-        </View>
-      )}
-      
-      <View style={[styles.barBackground, { backgroundColor: theme.colors.backgroundSecondary }]}>
-        <View 
-          style={[
-            styles.barFill, 
-            { 
-              width: `${usagePercentage}%`,
-              backgroundColor: barColor
-            }
-          ]} 
-        />
-      </View>
-      
-      {compact && (
-        <ThemedText variant="secondary" style={styles.compactText}>
-          {formatStorageSize(storageUsed)} / {formatStorageSize(storageLimit)}
-        </ThemedText>
-      )}
+    <View
+      style={[
+        styles.badge,
+        {
+          backgroundColor,
+          paddingHorizontal: isSmall ? 8 : 10,
+          paddingVertical: isSmall ? 2 : 4,
+        },
+      ]}
+    >
+      {isPaid &&
+        (planId === 'pro' ? (
+          <Crown size={iconSize} color={textColor} style={styles.icon} />
+        ) : (
+          <Sparkles size={iconSize} color={textColor} style={styles.icon} />
+        ))}
+      <ThemedText style={[styles.text, { color: textColor, fontSize: isSmall ? 11 : 13 }]}>
+        {label}
+      </ThemedText>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    marginVertical: 8,
-  },
-  labelContainer: {
+  badge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+    alignItems: 'center',
+    borderRadius: 999,
+    alignSelf: 'flex-start',
   },
-  label: {
-    fontSize: 14,
+  icon: {
+    marginRight: 4,
   },
-  usageText: {
-    fontSize: 14,
-  },
-  barBackground: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  compactText: {
-    fontSize: 12,
-    textAlign: 'right',
-    marginTop: 2,
+  text: {
+    fontWeight: '600',
   },
 });
