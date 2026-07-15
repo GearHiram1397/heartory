@@ -24,13 +24,14 @@ import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedCard } from '@/components/ThemedCard';
 import { memoryService } from '@/services/memoryService';
+import { SharedUser } from '@/types';
 
 export default function VaultDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [sharedUsers, setSharedUsers] = useState([]);
+  const [sharedUsers, setSharedUsers] = useState<SharedUser[]>([]);
   const [loadingSharedUsers, setLoadingSharedUsers] = useState(false);
   const router = useRouter();
   const theme = useActiveTheme();

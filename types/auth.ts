@@ -11,6 +11,9 @@ export interface User {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+    // True once the initial session check has completed. Used to gate routing
+    // so we never redirect based on stale persisted state.
+    initialized: boolean;
     error: string | null;
     
     // Actions

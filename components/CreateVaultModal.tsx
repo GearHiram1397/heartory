@@ -56,14 +56,15 @@ export const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
       try {
         setIsUploading(true);
         
-        // Upload the image to the server
-        const imageUrl = await uploadService.uploadImage(
+        // Upload the cover image to the public avatars bucket (the vault does
+        // not exist yet, so it can't live in the private memories bucket).
+        const imageUrl = await uploadService.uploadCoverImage(
           result.assets[0].uri,
           (progress) => {
             setUploadProgress(progress.progress);
           }
         );
-        
+
         setCoverImage(imageUrl);
       } catch (error) {
         console.error('Image upload error:', error);

@@ -1,101 +1,76 @@
 import { SubscriptionPlan, UserSubscription, ReferralInfo } from '@/types/subscription';
-import { apiRequest } from './api';
 import { mockApiService } from './mockService';
+import { supabase } from '@/lib/supabase';
+import { SUBSCRIPTION_PLANS, ANNUAL_SUBSCRIPTION_PLANS } from '@/constants/subscriptions';
 
-// Flag to use mock data instead of real API
-const USE_MOCK = true;
+// Monetization actions (subscribe/cancel/referrals) remain mocked until the
+// Stripe integration lands in Phase 1. Reads below are backed by Supabase.
+const BYTES_PER_MB = 1024 * 1024;
 
 export const subscriptionService = {
+  // Plan catalog is static marketing/config data (features, pricing tiers).
   getPlans: async (): Promise<SubscriptionPlan[]> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.getPlans();
-    }
-    
-    return apiRequest<SubscriptionPlan[]>('/subscriptions/plans', 'GET');
+    return [...SUBSCRIPTION_PLANS, ...ANNUAL_SUBSCRIPTION_PLANS];
   },
-  
+
+  // The user's actual subscription + real storage usage, from Postgres.
   getCurrentSubscription: async (): Promise<UserSubscription | null> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.getCurrentSubscription();
-    }
-    
-    try {
-      return await apiRequest<UserSubscription>('/subscriptions/current', 'GET');
-    } catch (error) {
-      // If no subscription exists, return null instead of throwing
-      if (error instanceof Error && error.message.includes('No subscription found')) {
-        return null;
-      }
-      throw error;
-    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+
+    return {
+      planId: data.plan_id,
+      status: data.status as UserSubscription['status'],
+      startDate: data.current_period_start,
+      endDate: data.current_period_end ?? '',
+      autoRenew: data.auto_renew,
+      storageUsed: Math.round((data.storage_used_bytes / BYTES_PER_MB) * 10) / 10,
+      paymentMethodId: data.stripe_subscription_id ?? undefined,
+    };
   },
-  
-  subscribeToPlan: async (planId: string, interval: 'month' | 'year', paymentMethodId?: string): Promise<UserSubscription> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.subscribeToPlan(planId, interval, paymentMethodId);
-    }
-    
-    return apiRequest<UserSubscription>('/subscriptions/subscribe', 'POST', { 
-      planId, 
-      interval,
-      paymentMethodId 
-    });
+
+  // --- Monetization actions: mocked until Phase 1 (Stripe). ---
+  // These will be replaced by Stripe Checkout + webhook-driven subscription
+  // state; the client will never mutate subscription rows directly.
+  subscribeToPlan: async (
+    planId: string,
+    interval: 'month' | 'year',
+    paymentMethodId?: string
+  ): Promise<UserSubscription> => {
+    return mockApiService.subscription.subscribeToPlan(planId, interval, paymentMethodId);
   },
-  
+
   cancelSubscription: async (): Promise<void> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.cancelSubscription();
-    }
-    
-    await apiRequest<void>('/subscriptions/cancel', 'POST');
+    return mockApiService.subscription.cancelSubscription();
   },
-  
+
   updateAutoRenew: async (autoRenew: boolean): Promise<void> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.updateAutoRenew(autoRenew);
-    }
-    
-    await apiRequest<void>('/subscriptions/auto-renew', 'POST', { autoRenew });
+    return mockApiService.subscription.updateAutoRenew(autoRenew);
   },
-  
+
   getReferralInfo: async (): Promise<ReferralInfo | null> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.getReferralInfo();
-    }
-    
-    try {
-      return await apiRequest<ReferralInfo>('/subscriptions/referrals', 'GET');
-    } catch (error) {
-      // If no referral info exists, return null instead of throwing
-      if (error instanceof Error && error.message.includes('No referral information found')) {
-        return null;
-      }
-      throw error;
-    }
+    return mockApiService.subscription.getReferralInfo();
   },
-  
+
   generateReferralCode: async (): Promise<string> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.generateReferralCode();
-    }
-    
-    const response = await apiRequest<{ code: string }>('/subscriptions/referrals/generate', 'POST');
-    return response.code;
+    return mockApiService.subscription.generateReferralCode();
   },
-  
+
   inviteFriend: async (email: string): Promise<void> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.inviteFriend(email);
-    }
-    
-    await apiRequest<void>('/subscriptions/referrals/invite', 'POST', { email });
+    return mockApiService.subscription.inviteFriend(email);
   },
-  
+
   redeemReferralCode: async (code: string): Promise<void> => {
-    if (USE_MOCK) {
-      return mockApiService.subscription.redeemReferralCode(code);
-    }
-    
-    await apiRequest<void>('/subscriptions/referrals/redeem', 'POST', { code });
-  }
+    return mockApiService.subscription.redeemReferralCode(code);
+  },
 };

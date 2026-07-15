@@ -1,167 +1,110 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, View, Pressable } from 'react-native';
-import { Check } from 'lucide-react-native';
-import { SubscriptionPlan } from '@/types/subscription';
+import * as Clipboard from 'expo-clipboard';
+import { Gift, Copy, UserPlus } from 'lucide-react-native';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useActiveTheme } from '@/store/themeStore';
 import { ThemedCard } from './ThemedCard';
 import { ThemedText } from './ThemedText';
-import { formatPrice, formatStorageSize } from '@/constants/subscriptions';
+import { ThemedButton } from './ThemedButton';
 
-interface SubscriptionCardProps {
-  plan: SubscriptionPlan;
-  isSelected: boolean;
-  onSelect: () => void;
+interface ReferralCardProps {
+  onInvite: () => void;
 }
 
-export const SubscriptionCard: React.FC<SubscriptionCardProps> = ({
-  plan,
-  isSelected,
-  onSelect
-}) => {
+// Shows the user's referral code + progress and an invite CTA.
+export const ReferralCard: React.FC<ReferralCardProps> = ({ onInvite }) => {
+  const { referralInfo, fetchReferralInfo } = useSubscriptionStore();
   const theme = useActiveTheme();
-  
+
+  useEffect(() => {
+    if (!referralInfo) fetchReferralInfo();
+  }, [referralInfo, fetchReferralInfo]);
+
+  const handleCopy = async () => {
+    if (referralInfo?.code) {
+      await Clipboard.setStringAsync(referralInfo.code);
+    }
+  };
+
   return (
-    <Pressable onPress={onSelect}>
-      <ThemedCard 
-        style={[
-          styles.card,
-          isSelected && { borderColor: theme.colors.primary, borderWidth: 2 },
-          plan.isPopular && styles.popularCard
-        ]}
-      >
-        {plan.isPopular && (
-          <View style={[styles.popularBadge, { backgroundColor: theme.colors.primary }]}>
-            <ThemedText style={styles.popularText}>Popular</ThemedText>
-          </View>
-        )}
-        
-        <View style={styles.header}>
-          <ThemedText preset="subtitle" style={styles.planName}>{plan.name}</ThemedText>
-          <View style={styles.priceContainer}>
-            <ThemedText preset="title" style={styles.price}>
-              {formatPrice(plan.price, plan.interval)}
-            </ThemedText>
-            {plan.interval === 'year' && plan.price > 0 && (
-              <ThemedText variant="secondary" style={styles.savingsText}>
-                Save 20%
-              </ThemedText>
-            )}
-          </View>
+    <ThemedCard style={styles.card} elevation="small">
+      <View style={styles.header}>
+        <View style={[styles.iconCircle, { backgroundColor: `${theme.colors.primary}20` }]}>
+          <Gift size={20} color={theme.colors.primary} />
         </View>
-        
-        <ThemedText variant="secondary" style={styles.description}>
-          {plan.description}
-        </ThemedText>
-        
-        <View style={styles.storageContainer}>
-          <ThemedText style={styles.storageText}>
-            {formatStorageSize(plan.storageLimit)} storage
+        <View style={styles.headerText}>
+          <ThemedText preset="label">Invite friends, earn free months</ThemedText>
+          <ThemedText variant="secondary" style={styles.subtitle}>
+            {referralInfo
+              ? `${referralInfo.referralsCount} joined · ${referralInfo.freeMonthsEarned} free month${
+                  referralInfo.freeMonthsEarned === 1 ? '' : 's'
+                } earned`
+              : 'Share Heartory with the people you love'}
           </ThemedText>
         </View>
-        
-        <View style={styles.featuresContainer}>
-          {plan.features.map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <Check size={16} color={theme.colors.primary} style={styles.checkIcon} />
-              <ThemedText style={styles.featureText}>{feature}</ThemedText>
-            </View>
-          ))}
-        </View>
-        
-        {isSelected && (
-          <View style={[styles.selectedBadge, { backgroundColor: theme.colors.primary }]}>
-            <Check size={16} color="#FFFFFF" />
-            <ThemedText style={styles.selectedText}>Selected</ThemedText>
-          </View>
-        )}
-      </ThemedCard>
-    </Pressable>
+      </View>
+
+      {referralInfo?.code ? (
+        <Pressable
+          onPress={handleCopy}
+          style={[styles.codeRow, { backgroundColor: theme.colors.backgroundSecondary }]}
+        >
+          <ThemedText style={styles.code}>{referralInfo.code}</ThemedText>
+          <Copy size={16} color={theme.colors.textSecondary} />
+        </Pressable>
+      ) : null}
+
+      <ThemedButton
+        title="Invite a Friend"
+        onPress={onInvite}
+        leftIcon={<UserPlus size={18} color="#fff" />}
+        buttonStyle={styles.inviteButton}
+      />
+    </ThemedCard>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
     padding: 16,
-    marginBottom: 16,
-    position: 'relative',
-  },
-  popularCard: {
-    paddingTop: 24,
-  },
-  popularBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-  },
-  popularText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    marginVertical: 8,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  planName: {
-    fontWeight: '700',
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
-  priceContainer: {
-    alignItems: 'flex-end',
+  headerText: {
+    flex: 1,
   },
-  price: {
-    fontWeight: '700',
-  },
-  savingsText: {
-    fontSize: 12,
+  subtitle: {
+    fontSize: 13,
     marginTop: 2,
   },
-  description: {
-    marginBottom: 16,
-    lineHeight: 20,
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 12,
   },
-  storageContainer: {
-    marginBottom: 16,
-  },
-  storageText: {
-    fontWeight: '600',
+  code: {
     fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 1,
   },
-  featuresContainer: {
-    marginTop: 8,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  checkIcon: {
-    marginRight: 8,
-  },
-  featureText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  selectedBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderTopLeftRadius: 8,
-  },
-  selectedText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 12,
-    marginLeft: 4,
+  inviteButton: {
+    marginTop: 4,
   },
 });
