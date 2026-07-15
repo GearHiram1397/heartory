@@ -128,7 +128,7 @@ let mockCurrentSubscription: UserSubscription = {
 let mockReferralInfo: ReferralInfo = {
   code: 'FRIEND25',
   referralsCount: 2,
-  referralLink: 'https://memora.app/refer/FRIEND25',
+  referralLink: 'https://heartory.app/refer/FRIEND25',
   freeMonthsEarned: 2,
   hasClaimedFreeMonth: true,
 };
@@ -644,7 +644,7 @@ export const mockApiService = {
       
       // Update referral info
       mockReferralInfo.code = code;
-      mockReferralInfo.referralLink = `https://memora.app/refer/${code}`;
+      mockReferralInfo.referralLink = `https://heartory.app/refer/${code}`;
       
       return code;
     },

@@ -88,7 +88,7 @@ export default function ForgotPasswordScreen() {
             >
               <Heart size={32} color="#fff" />
             </LinearGradient>
-            <Text style={styles.appName}>Memora</Text>
+            <Text style={styles.appName}>Heartory</Text>
           </View>
           
           <View style={styles.formContainer}>

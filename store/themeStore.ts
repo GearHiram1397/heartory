@@ -54,7 +54,7 @@ export const useThemeStore = create<ThemeState>()(
       },
     }),
     {
-      name: 'memora-theme-storage',
+      name: 'heartory-theme-storage',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

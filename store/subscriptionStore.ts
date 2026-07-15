@@ -177,7 +177,7 @@ export const useSubscriptionStore = create<SubscriptionState>()(
       clearError: () => set({ error: null }),
     }),
     {
-      name: 'memora-subscription-storage',
+      name: 'heartory-subscription-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
         currentSubscription: state.currentSubscription,

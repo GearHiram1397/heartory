@@ -135,9 +135,9 @@ export default function InviteScreen() {
     
     try {
       await Share.share({
-        message: `Join me on Memora, a beautiful app for preserving memories! Use my referral code ${referralInfo.code} to get a free month. ${referralInfo.referralLink}`,
+        message: `Join me on Heartory, a beautiful app for preserving memories! Use my referral code ${referralInfo.code} to get a free month. ${referralInfo.referralLink}`,
         url: referralInfo.referralLink,
-        title: 'Join me on Memora'
+        title: 'Join me on Heartory'
       });
     } catch (error) {
       console.error('Failed to share:', error);
@@ -172,9 +172,9 @@ export default function InviteScreen() {
             </View>
           )}
           
-          <ThemedText preset="title">Invite Friends to Memora</ThemedText>
+          <ThemedText preset="title">Invite Friends to Heartory</ThemedText>
           <ThemedText variant="secondary" style={styles.subtitle}>
-            Share Memora with friends and family. When they join using your referral code, you'll both get one month free!
+            Share Heartory with friends and family. When they join using your referral code, you'll both get one month free!
           </ThemedText>
           
           {referralInfo && (

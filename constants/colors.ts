@@ -1,4 +1,4 @@
-// Color palette for Memora app
+// Color palette for Heartory app
 export const colors = {
   // Primary gradients
   sunsetGlow: {

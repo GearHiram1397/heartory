@@ -75,7 +75,7 @@ export default function HomeScreen() {
           </View>
           <ThemedText style={styles.greeting}>Hello, {user?.name || "Friend"}</ThemedText>
           <View style={styles.appNameContainer}>
-            <ThemedText style={styles.appName}>Memora</ThemedText>
+            <ThemedText style={styles.appName}>Heartory</ThemedText>
             <SubscriptionBadge size="small" />
           </View>
           <ThemedText style={styles.tagline}>Preserve what matters most</ThemedText>
