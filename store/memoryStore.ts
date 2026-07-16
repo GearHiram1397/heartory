@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MemoryVault, Memory } from '@/types';
 import { memoryService } from '@/services/memoryService';
 import { notificationService } from '@/services/notificationService';
+import { analytics } from '@/lib/analytics';
 
 interface MemoryState {
   vaults: MemoryVault[];
@@ -77,7 +78,8 @@ export const useMemoryStore = create<MemoryState>()(
         
         try {
           const newVault = await memoryService.createVault(vault);
-          
+          analytics.track('vault_created');
+
           set(state => ({
             vaults: [...state.vaults, newVault],
             isLoading: false

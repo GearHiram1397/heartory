@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthState, User } from '@/types/auth';
 import { authService } from '@/services/authService';
 import { supabase } from '@/lib/supabase';
+import { analytics } from '@/lib/analytics';
 
 let authListenerBound = false;
 
@@ -35,6 +36,8 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const user = await authService.register(name, email, password);
+          analytics.identify(user.id);
+          analytics.track('sign_up');
           set({ user, isAuthenticated: true, isLoading: false });
         } catch (error) {
           set({

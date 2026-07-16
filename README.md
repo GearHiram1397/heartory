@@ -1,93 +1,86 @@
 # 💖 Heartory
 
-**Heartory** is a private, emotionally driven memory preservation app designed for both mobile and web platforms. It offers users a safe and comforting digital space to store, revisit, and share memories of their loved ones.
+**Heartory** is a private, emotionally driven memory-preservation app for
+mobile and web — a safe, comforting space to store, revisit, and share memories
+of loved ones.
+
+Built with Expo (React Native) + expo-router, Zustand, and a Supabase backend
+(Postgres + Auth + Storage + Edge Functions), with Stripe for payments.
 
 ---
 
-## 🌟 Features
+## Status
 
-- **Memory Vaults**: Create personalized vaults for each loved one, complete with names, avatars, and summaries.
-- **Diverse Memory Types**: Add photos, short videos, audio clips, quotes, and text notes.
-- **Organized Layout**: Experience a vertical timeline or adaptive grid layout for memories.
-- **Tagging & Captions**: Tag memories (e.g., “birthday”, “vacation”) and add captions or dates.
-- **Privacy Controls**: Vaults are private by default, with options to invite family members for viewing or contribution.
-- **Offline Access**: Access saved memories without an internet connection.
-- **Secure Storage**: Utilize encrypted cloud storage ensuring data privacy and compliance with GDPR.
-- **User Empowerment**: Export or delete memories at any time.
+Heartory has been taken from a UI prototype to a real, secured application. See
+the phase docs in [`docs/`](./docs):
 
----
-
-## 🎨 Design & Branding
-
-- **Color Palette**:
-  - *Sunset Glow*: `#FF6B6B` to `#FFD93D`
-  - *Serene Twilight*: `#6A11CB` to `#2575FC`
-  - *Accents*: `#B24592` (romantic rosewood), `#704214` (vintage sepia)
-
-- **Typography**:
-  - *Headers*: Playfair Display (serif)
-  - *Body*: Lato or Open Sans (sans-serif)
-
-- **Logo Concept**: A simple, symbolic design—such as a blooming flower or heart-shaped capsule—that represents memory and continuity, adaptable to both light and dark modes.
-
-- **UI Elements**: Rounded buttons, soft drop shadows, and subtle transitions to create a warm and elegant user experience.
+- **[GO-LIVE-ANALYSIS](docs/GO-LIVE-ANALYSIS.md)** — business + technical readiness assessment
+- **Phase 0** — real backend, schema, RLS, auth, storage ([status](docs/PHASE-0-STATUS.md))
+- **Phase 1** — Stripe monetization (Checkout + Billing Portal) ([docs](docs/PHASE-1-STRIPE.md))
+- **Phase 2** — GDPR export/delete, 2FA, audit, policies ([docs](docs/PHASE-2-COMPLIANCE.md))
+- **Phase 3** — push notifications ([docs](docs/PHASE-3-NOTIFICATIONS.md))
+- **Phase 4** — CI, error tracking, performance ([docs](docs/PHASE-4-OPS.md))
+- **Phase 5** — launch prep ([checklist](docs/LAUNCH-CHECKLIST.md))
 
 ---
 
-## 🔐 Privacy & Security
+## Architecture
 
-- **Data Encryption**: Employ server-side encryption (e.g., AWS S3) with options for client-side encryption.
-- **Two-Factor Authentication**: Enhance account security.
-- **GDPR Compliance**: Ensure user data rights and privacy.
-- **User Control**: Provide clear data ownership with options to export or delete memories.
+```
+app/            expo-router screens (auth-gated)
+components/      UI components
+store/           Zustand stores (auth, memory, subscription, theme, billing)
+services/        data + integration layer (Supabase, Stripe, notifications, compliance)
+lib/             supabase client, monitoring, analytics
+supabase/
+  migrations/    version-controlled schema (source of truth)
+  functions/     Deno Edge Functions (Stripe, GDPR, notifications)
+types/           app + generated database types
+```
 
----
-
-## 💬 Tone & Language
-
-Heartory communicates with kindness and empathy. Interface prompts use gentle language (e.g., “Add a special moment” instead of “Upload photo”) to create a serene and trustworthy environment.
-
----
-
-## 🚀 Future Enhancements
-
-- **AI-Enhanced Storytelling**: Generate memory montages and reminders.
-- **Advanced Sharing Options**: Introduce more granular sharing permissions and collaborative features.
-
----
-
-## 📱 Installation & Setup
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/yourusername/heartory.git
-   cd heartory
-   ```
-
-2. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Start the Application**:
-   ```bash
-   npm start
-   ```
+- **Auth**: Supabase Auth (email + password, email confirmation, optional TOTP 2FA).
+- **Authorization**: Postgres Row-Level Security on every table.
+- **Media**: private `memories` storage bucket, served via signed URLs.
+- **Payments**: Stripe Checkout + Billing Portal; webhooks are the source of truth.
+- **Data rights**: self-serve export and account deletion.
 
 ---
 
-## 🤝 Contributing
+## Getting started
 
-Contributions are welcome! Please fork the repository and submit a pull request for any enhancements or bug fixes.
+```bash
+npm install
+cp .env.example .env   # a committed .env already has this project's public keys
+npm start
+```
+
+Public config (`EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`) is
+safe in the client — Row-Level Security protects the data. Server secrets
+(`service_role`, Stripe secret/webhook keys) live only in Supabase Edge Function
+secrets, never in the app.
+
+Optional client env: `EXPO_PUBLIC_SENTRY_DSN`, `EXPO_PUBLIC_ANALYTICS_KEY`,
+`EXPO_PUBLIC_PASSWORD_RESET_URL`.
 
 ---
 
-## 📄 License
+## Deploying the backend
 
-This project is licensed under the [MIT License](LICENSE).
+Schema lives in `supabase/migrations/`. Edge Functions in `supabase/functions/`:
+
+```bash
+supabase functions deploy stripe-checkout
+supabase functions deploy stripe-portal
+supabase functions deploy stripe-webhook --no-verify-jwt
+supabase functions deploy account-export
+supabase functions deploy account-delete
+supabase functions deploy notify-vault-activity
+```
+
+Then set secrets and Stripe prices as described in the phase docs.
 
 ---
 
-## 📬 Contact
+## License
 
-For questions or feedback, please contact [your email address].
+MIT.
