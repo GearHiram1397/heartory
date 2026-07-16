@@ -15,14 +15,27 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.heartory.app"
+      "bundleIdentifier": "com.heartory.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Heartory needs access to your photos so you can add them to your memory vaults.",
+        "NSCameraUsageDescription": "Heartory needs camera access so you can capture new memories.",
+        "NSMicrophoneUsageDescription": "Heartory needs microphone access so you can record audio memories.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.heartory.app"
+      "package": "com.heartory.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"

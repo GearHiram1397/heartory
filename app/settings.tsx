@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Alert,
   Share,
+  Linking,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
@@ -253,11 +254,14 @@ export default function SettingsScreen() {
             <ThemedText preset="subtitle">Help & Support</ThemedText>
             
             <ThemedCard style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingItem}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => Linking.openURL('mailto:support@heartory.app')}
+              >
                 <View style={styles.settingIconContainer}>
                   <HelpCircle size={22} color={theme.colors.text} />
                 </View>
-                <ThemedText style={styles.settingText}>Help Center</ThemedText>
+                <ThemedText style={styles.settingText}>Contact Support</ThemedText>
                 <ChevronRight size={20} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </ThemedCard>

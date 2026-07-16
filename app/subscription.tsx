@@ -25,6 +25,7 @@ import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { StorageUsageBar } from '@/components/StorageUsageBar';
 import * as WebBrowser from 'expo-web-browser';
 import { subscriptionService } from '@/services/subscriptionService';
+import { analytics } from '@/lib/analytics';
 
 export default function SubscriptionScreen() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -103,6 +104,7 @@ export default function SubscriptionScreen() {
     clearSubscriptionError();
 
     try {
+      analytics.track('checkout_started', { planId: selectedPlanId, interval: isAnnual ? 'year' : 'month' });
       // Stripe Checkout — hosted, PCI-safe. Card data never touches the app.
       const url = await subscriptionService.startCheckout(
         selectedPlanId,
