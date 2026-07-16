@@ -3,6 +3,11 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { initMonitoring } from '@/lib/monitoring';
+
+// Initialize crash reporting as early as possible (no-op without a DSN).
+initMonitoring();
 
 // Redirect users based on auth state: signed-out users are pushed to the auth
 // screens; signed-in users are kept out of them.
@@ -52,6 +57,7 @@ export default function RootLayout() {
   }
 
   return (
+    <ErrorBoundary>
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="auth/login" options={{ headerShown: false }} />
@@ -68,5 +74,6 @@ export default function RootLayout() {
       <Stack.Screen name="legal/privacy" options={{ headerTitle: 'Privacy Policy' }} />
       <Stack.Screen name="legal/terms" options={{ headerTitle: 'Terms of Service' }} />
     </Stack>
+    </ErrorBoundary>
   );
 }

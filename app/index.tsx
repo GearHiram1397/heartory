@@ -163,6 +163,10 @@ export default function HomeScreen() {
           ListHeaderComponent={renderHeader()}
           refreshing={isLoading}
           onRefresh={fetchVaults}
+          initialNumToRender={6}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          removeClippedSubviews
         />
       )}
       
