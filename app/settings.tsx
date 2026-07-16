@@ -1,16 +1,32 @@
 import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  ScrollView, 
-  Switch, 
-  TouchableOpacity, 
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Switch,
+  TouchableOpacity,
   Modal,
-  SafeAreaView
+  SafeAreaView,
+  Alert,
+  Share,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Moon, Sun, Palette, Bell, Shield, HelpCircle, ChevronRight } from 'lucide-react-native';
+import {
+  Moon,
+  Sun,
+  Palette,
+  Bell,
+  Shield,
+  HelpCircle,
+  ChevronRight,
+  KeyRound,
+  Download,
+  Trash2,
+  FileText,
+} from 'lucide-react-native';
 import { useThemeStore, useActiveTheme } from '@/store/themeStore';
+import { useAuthStore } from '@/store/authStore';
+import { complianceService } from '@/services/complianceService';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedCard } from '@/components/ThemedCard';
@@ -18,9 +34,54 @@ import { ThemeSelector } from '@/components/ThemeSelector';
 
 export default function SettingsScreen() {
   const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [busy, setBusy] = useState(false);
   const router = useRouter();
   const theme = useActiveTheme();
   const { themeMode, setThemeMode } = useThemeStore();
+  const logout = useAuthStore((s) => s.logout);
+
+  const handleExportData = async () => {
+    setBusy(true);
+    try {
+      const bundle = await complianceService.exportMyData();
+      await Share.share({
+        title: 'Heartory data export',
+        message: JSON.stringify(bundle, null, 2),
+      });
+    } catch (e) {
+      Alert.alert('Export', e instanceof Error ? e.message : 'Could not export your data.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account',
+      'This permanently deletes your account and every memory, vault, and file in it. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Everything',
+          style: 'destructive',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await complianceService.deleteMyAccount();
+              await logout();
+            } catch (e) {
+              Alert.alert(
+                'Delete Account',
+                e instanceof Error ? e.message : 'Could not delete your account.'
+              );
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ]
+    );
+  };
   
   const isDarkMode = themeMode === 'dark' || 
     (themeMode === 'system' && theme.isDark);
@@ -103,18 +164,75 @@ export default function SettingsScreen() {
           
           <View style={styles.section}>
             <ThemedText preset="subtitle">Privacy & Security</ThemedText>
-            
+
             <ThemedCard style={styles.settingsCard}>
-              <TouchableOpacity style={styles.settingItem}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => router.push('/two-factor')}
+              >
+                <View style={styles.settingIconContainer}>
+                  <KeyRound size={22} color={theme.colors.text} />
+                </View>
+                <ThemedText style={styles.settingText}>Two-Factor Authentication</ThemedText>
+                <ChevronRight size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => router.push('/legal/privacy')}
+              >
                 <View style={styles.settingIconContainer}>
                   <Shield size={22} color={theme.colors.text} />
                 </View>
-                <ThemedText style={styles.settingText}>Privacy Settings</ThemedText>
+                <ThemedText style={styles.settingText}>Privacy Policy</ThemedText>
+                <ChevronRight size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => router.push('/legal/terms')}
+              >
+                <View style={styles.settingIconContainer}>
+                  <FileText size={22} color={theme.colors.text} />
+                </View>
+                <ThemedText style={styles.settingText}>Terms of Service</ThemedText>
                 <ChevronRight size={20} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             </ThemedCard>
           </View>
-          
+
+          <View style={styles.section}>
+            <ThemedText preset="subtitle">Your Data</ThemedText>
+
+            <ThemedCard style={styles.settingsCard}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleExportData}
+                disabled={busy}
+              >
+                <View style={styles.settingIconContainer}>
+                  <Download size={22} color={theme.colors.text} />
+                </View>
+                <ThemedText style={styles.settingText}>Export My Data</ThemedText>
+                <ChevronRight size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={handleDeleteAccount}
+                disabled={busy}
+              >
+                <View style={styles.settingIconContainer}>
+                  <Trash2 size={22} color={theme.colors.error} />
+                </View>
+                <ThemedText style={[styles.settingText, { color: theme.colors.error }]}>
+                  Delete My Account
+                </ThemedText>
+                <ChevronRight size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+            </ThemedCard>
+          </View>
+
           <View style={styles.section}>
             <ThemedText preset="subtitle">Help & Support</ThemedText>
             
