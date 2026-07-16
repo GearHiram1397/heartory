@@ -39,9 +39,30 @@ export const subscriptionService = {
     };
   },
 
-  // --- Monetization actions: mocked until Phase 1 (Stripe). ---
-  // These will be replaced by Stripe Checkout + webhook-driven subscription
-  // state; the client will never mutate subscription rows directly.
+  // --- Stripe Checkout (hosted, PCI-safe) ---
+  // Returns a Stripe Checkout URL for the app to open in a browser. Card data
+  // never touches our servers. Webhooks are the source of truth for the
+  // resulting subscription state.
+  startCheckout: async (planId: string, interval: 'month' | 'year'): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('stripe-checkout', {
+      body: { planId, interval },
+    });
+    if (error) throw new Error(error.message);
+    if (!data?.url) throw new Error(data?.error || 'Could not start checkout.');
+    return data.url as string;
+  },
+
+  // Returns a Stripe Billing Portal URL to manage/cancel the subscription and
+  // update payment methods.
+  openBillingPortalUrl: async (): Promise<string> => {
+    const { data, error } = await supabase.functions.invoke('stripe-portal', { body: {} });
+    if (error) throw new Error(error.message);
+    if (!data?.url) throw new Error(data?.error || 'Could not open the billing portal.');
+    return data.url as string;
+  },
+
+  // Deprecated: subscription changes now flow through Stripe Checkout + the
+  // billing portal. Kept for the legacy CheckoutModal callback signature.
   subscribeToPlan: async (
     planId: string,
     interval: 'month' | 'year',
