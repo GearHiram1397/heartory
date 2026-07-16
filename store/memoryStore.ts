@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MemoryVault, Memory } from '@/types';
 import { memoryService } from '@/services/memoryService';
+import { notificationService } from '@/services/notificationService';
 
 interface MemoryState {
   vaults: MemoryVault[];
@@ -135,19 +136,29 @@ export const useMemoryStore = create<MemoryState>()(
 
         try {
           const newMemory = await memoryService.createMemory(vaultId, memory, storageBytes);
-          
+
           set(state => ({
-            vaults: state.vaults.map(vault => 
-              vault.id === vaultId 
-                ? { 
-                    ...vault, 
+            vaults: state.vaults.map(vault =>
+              vault.id === vaultId
+                ? {
+                    ...vault,
                     memories: [...vault.memories, newMemory],
                     updatedAt: new Date().toISOString(),
-                  } 
+                  }
                 : vault
             ),
             isLoading: false
           }));
+
+          // Notify co-owners when a memory lands in a shared vault (best-effort).
+          const vault = get().vaults.find(v => v.id === vaultId);
+          if (vault && vault.sharedWith.length > 0) {
+            notificationService.notifyVaultActivity(
+              vaultId,
+              `New memory in ${vault.name}`,
+              'A new memory was added to a vault you share.'
+            );
+          }
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : "Failed to add memory",
