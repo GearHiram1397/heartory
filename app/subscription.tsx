@@ -23,13 +23,13 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedButton } from '@/components/ThemedButton';
 import { SubscriptionCard } from '@/components/SubscriptionCard';
 import { StorageUsageBar } from '@/components/StorageUsageBar';
-import { CheckoutModal } from '@/components/CheckoutModal';
+import * as WebBrowser from 'expo-web-browser';
+import { subscriptionService } from '@/services/subscriptionService';
 
 export default function SubscriptionScreen() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   
   const { 
     plans, 
@@ -87,81 +87,69 @@ export default function SubscriptionScreen() {
   };
   
   const handleSubscribe = async () => {
-    if (!selectedPlanId) return;
-    
+    if (!selectedPlanId || selectedPlanId === 'free') return;
+
     // If the user is already subscribed to this plan, just confirm
     if (currentSubscription?.planId === selectedPlanId && currentSubscription?.status === 'active') {
       Alert.alert('Subscription Confirmed', 'You are already subscribed to this plan.');
       return;
     }
-    
-    // If the user has no payment methods, redirect to billing
-    if (paymentMethods.length === 0) {
-      Alert.alert(
-        'Payment Method Required',
-        'You need to add a payment method before subscribing.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Add Payment Method', 
-            onPress: () => router.push('/billing')
-          }
-        ]
-      );
-      return;
-    }
-    
-    // Open checkout modal
-    setCheckoutModalVisible(true);
-  };
-  
-  const handleCheckoutComplete = async (paymentMethodId: string) => {
-    if (!selectedPlanId) return;
-    
+
     if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Haptics.selectionAsync();
     }
-    
+
     setIsProcessing(true);
     clearSubscriptionError();
-    clearBillingError();
-    
+
     try {
-      await subscribeToPlan(selectedPlanId, isAnnual ? 'year' : 'month', paymentMethodId);
-      setCheckoutModalVisible(false);
-      Alert.alert('Success', 'Your subscription has been updated successfully!');
+      // Stripe Checkout — hosted, PCI-safe. Card data never touches the app.
+      const url = await subscriptionService.startCheckout(
+        selectedPlanId,
+        isAnnual ? 'year' : 'month'
+      );
+      await WebBrowser.openBrowserAsync(url);
+      // The Stripe webhook is the source of truth; refresh after returning.
+      await fetchCurrentSubscription();
     } catch (error) {
-      // Error is handled in the store
+      Alert.alert(
+        'Checkout',
+        error instanceof Error ? error.message : 'Could not start checkout. Please try again.'
+      );
     } finally {
       setIsProcessing(false);
     }
   };
-  
+
+  const handleManageBilling = async () => {
+    setIsProcessing(true);
+    clearSubscriptionError();
+    try {
+      const url = await subscriptionService.openBillingPortalUrl();
+      await WebBrowser.openBrowserAsync(url);
+      await fetchCurrentSubscription();
+    } catch (error) {
+      Alert.alert(
+        'Billing',
+        error instanceof Error ? error.message : 'Could not open the billing portal.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleCancel = async () => {
     Alert.alert(
-      'Cancel Subscription',
-      'Are you sure you want to cancel your subscription? You will still have access until the end of your billing period.',
+      'Manage Subscription',
+      'You can cancel or change your plan anytime from the secure Stripe billing portal. Open it now?',
       [
         {
-          text: 'No, Keep It',
+          text: 'Not Now',
           style: 'cancel',
         },
         {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            setIsProcessing(true);
-            clearSubscriptionError();
-            
-            try {
-              await cancelSubscription();
-              Alert.alert('Subscription Canceled', 'Your subscription has been canceled. You will still have access until the end of your billing period.');
-            } catch (error) {
-              // Error is handled in the store
-            } finally {
-              setIsProcessing(false);
-            }
-          },
+          text: 'Open Billing Portal',
+          onPress: handleManageBilling,
         },
       ]
     );
@@ -180,10 +168,6 @@ export default function SubscriptionScreen() {
     } finally {
       setIsProcessing(false);
     }
-  };
-  
-  const navigateToBilling = () => {
-    router.push('/billing');
   };
   
   const formatDate = (dateString: string) => {
@@ -274,16 +258,18 @@ export default function SubscriptionScreen() {
                 </View>
               </View>
               
-              <TouchableOpacity 
-                style={styles.billingButton}
-                onPress={navigateToBilling}
-              >
-                <View style={styles.billingButtonContent}>
-                  <CreditCard size={20} color={theme.colors.text} style={{ marginRight: 12 }} />
-                  <ThemedText>Manage Payment Methods</ThemedText>
-                </View>
-                <ChevronRight size={20} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
+              {currentSubscription.planId !== 'free' && (
+                <TouchableOpacity
+                  style={styles.billingButton}
+                  onPress={handleManageBilling}
+                >
+                  <View style={styles.billingButtonContent}>
+                    <CreditCard size={20} color={theme.colors.text} style={{ marginRight: 12 }} />
+                    <ThemedText>Manage Billing &amp; Payment</ThemedText>
+                  </View>
+                  <ChevronRight size={20} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              )}
               
               {currentSubscription.status === 'active' && currentSubscription.planId !== 'free' && (
                 <ThemedButton
@@ -338,14 +324,6 @@ export default function SubscriptionScreen() {
             />
           </View>
         </ScrollView>
-        
-        <CheckoutModal
-          visible={checkoutModalVisible}
-          onClose={() => setCheckoutModalVisible(false)}
-          onComplete={handleCheckoutComplete}
-          planId={selectedPlanId}
-          interval={isAnnual ? 'year' : 'month'}
-        />
       </ThemedView>
     </SafeAreaView>
   );
