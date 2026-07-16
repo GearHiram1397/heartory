@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
+import { notificationService } from '@/services/notificationService';
 
 // Redirect users based on auth state: signed-out users are pushed to the auth
 // screens; signed-in users are kept out of them.
@@ -26,12 +27,19 @@ function useProtectedRoute() {
 export default function RootLayout() {
   const initAuth = useAuthStore((s) => s.initAuth);
   const initialized = useAuthStore((s) => s.initialized);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   // Reconcile with the real Supabase session on startup. Theme 'system' mode
   // resolves automatically via useColorScheme() in useActiveTheme().
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  // Register this device for push once the user is signed in (no-op on web /
+  // simulators / when permission is denied).
+  useEffect(() => {
+    if (isAuthenticated) notificationService.registerForPush();
+  }, [isAuthenticated]);
 
   useProtectedRoute();
 

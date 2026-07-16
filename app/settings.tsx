@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
@@ -27,6 +27,7 @@ import {
 import { useThemeStore, useActiveTheme } from '@/store/themeStore';
 import { useAuthStore } from '@/store/authStore';
 import { complianceService } from '@/services/complianceService';
+import { notificationService } from '@/services/notificationService';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedCard } from '@/components/ThemedCard';
@@ -39,6 +40,20 @@ export default function SettingsScreen() {
   const theme = useActiveTheme();
   const { themeMode, setThemeMode } = useThemeStore();
   const logout = useAuthStore((s) => s.logout);
+  const [pushEnabled, setPushEnabled] = useState(true);
+
+  useEffect(() => {
+    notificationService.getPushEnabled().then(setPushEnabled).catch(() => {});
+  }, []);
+
+  const handleTogglePush = async (value: boolean) => {
+    setPushEnabled(value);
+    try {
+      await notificationService.setPushEnabled(value);
+    } catch {
+      setPushEnabled(!value); // revert on failure
+    }
+  };
 
   const handleExportData = async () => {
     setBusy(true);
@@ -151,10 +166,11 @@ export default function SettingsScreen() {
                 </View>
                 <ThemedText style={styles.settingText}>Push Notifications</ThemedText>
                 <Switch
-                  value={true}
-                  trackColor={{ 
-                    false: theme.colors.backgroundSecondary, 
-                    true: theme.colors.primary 
+                  value={pushEnabled}
+                  onValueChange={handleTogglePush}
+                  trackColor={{
+                    false: theme.colors.backgroundSecondary,
+                    true: theme.colors.primary
                   }}
                   thumbColor="#FFFFFF"
                 />
