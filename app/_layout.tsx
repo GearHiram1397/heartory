@@ -56,6 +56,9 @@ export default function RootLayout() {
       <Stack.Screen name="subscription" options={{ headerTitle: 'Subscription' }} />
       <Stack.Screen name="billing" options={{ headerTitle: 'Billing & Payment' }} />
       <Stack.Screen name="invite" options={{ headerTitle: 'Invite Friends' }} />
+      <Stack.Screen name="two-factor" options={{ headerTitle: 'Two-Factor Authentication' }} />
+      <Stack.Screen name="legal/privacy" options={{ headerTitle: 'Privacy Policy' }} />
+      <Stack.Screen name="legal/terms" options={{ headerTitle: 'Terms of Service' }} />
     </Stack>
   );
 }
