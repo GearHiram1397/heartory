@@ -1,8 +1,9 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
 import { notificationService } from '@/services/notificationService';
+import { beneficiaryService } from '@/services/beneficiaryService';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { initMonitoring } from '@/lib/monitoring';
 
@@ -46,6 +47,17 @@ export default function RootLayout() {
     if (isAuthenticated) notificationService.registerForPush();
   }, [isAuthenticated]);
 
+  // Heartbeat: keep the owner's activity fresh so the inactivity-based
+  // inheritance release only fires for genuinely dormant accounts.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    beneficiaryService.heartbeat();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') beneficiaryService.heartbeat();
+    });
+    return () => sub.remove();
+  }, [isAuthenticated]);
+
   useProtectedRoute();
 
   if (!initialized) {
@@ -64,6 +76,7 @@ export default function RootLayout() {
       <Stack.Screen name="auth/register" options={{ headerShown: false }} />
       <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
       <Stack.Screen name="vault/[id]" options={{ headerTitle: 'Memory Vault' }} />
+      <Stack.Screen name="beneficiaries/[vaultId]" options={{ headerTitle: 'Beneficiaries' }} />
       <Stack.Screen name="memory/[vaultId]/[id]" options={{ headerTitle: 'Memory' }} />
       <Stack.Screen name="profile" options={{ headerTitle: 'Profile' }} />
       <Stack.Screen name="settings" options={{ headerTitle: 'Settings' }} />
