@@ -1,15 +1,15 @@
-import React from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  TouchableOpacity, 
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
   ScrollView,
   Alert,
   Image,
   SafeAreaView
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LogOut, User, Settings, Shield, Heart, CreditCard, Gift, Receipt } from 'lucide-react-native';
+import { LogOut, User, Settings, Shield, Heart, CreditCard, Receipt } from 'lucide-react-native';
 import { useAuthStore } from '@/store/authStore';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useActiveTheme } from '@/store/themeStore';
@@ -20,9 +20,11 @@ import { ThemedCard } from '@/components/ThemedCard';
 import { StorageUsageBar } from '@/components/StorageUsageBar';
 import { SubscriptionBadge } from '@/components/SubscriptionBadge';
 import { ReferralCard } from '@/components/ReferralCard';
+import { EditProfileModal } from '@/components/EditProfileModal';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [editVisible, setEditVisible] = useState(false);
   const { user, logout } = useAuthStore();
   const { currentSubscription, plans, fetchCurrentSubscription, fetchReferralInfo } = useSubscriptionStore();
   const theme = useActiveTheme();
@@ -106,6 +108,7 @@ export default function ProfileScreen() {
               variant="outline"
               size="small"
               buttonStyle={styles.editButton}
+              onPress={() => setEditVisible(true)}
             />
           </View>
           
@@ -136,7 +139,7 @@ export default function ProfileScreen() {
             <ThemedText preset="subtitle">Account</ThemedText>
             
             <ThemedCard style={styles.menuCard}>
-              <TouchableOpacity style={styles.menuItem}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => setEditVisible(true)}>
                 <User size={20} color={theme.colors.text} style={styles.menuIcon} />
                 <ThemedText style={styles.menuText}>Personal Information</ThemedText>
               </TouchableOpacity>
@@ -165,7 +168,7 @@ export default function ProfileScreen() {
                 <ThemedText style={styles.menuText}>Settings</ThemedText>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.menuItem}>
+              <TouchableOpacity style={styles.menuItem} onPress={navigateToSettings}>
                 <Shield size={20} color={theme.colors.text} style={styles.menuIcon} />
                 <ThemedText style={styles.menuText}>Privacy & Security</ThemedText>
               </TouchableOpacity>
@@ -192,6 +195,8 @@ export default function ProfileScreen() {
             />
           </View>
         </ScrollView>
+
+        <EditProfileModal visible={editVisible} onClose={() => setEditVisible(false)} />
       </ThemedView>
     </SafeAreaView>
   );

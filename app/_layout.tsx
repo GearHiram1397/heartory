@@ -17,17 +17,25 @@ function useProtectedRoute() {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const initialized = useAuthStore((s) => s.initialized);
+  const passwordRecovery = useAuthStore((s) => s.passwordRecovery);
 
   useEffect(() => {
     if (!initialized) return;
     const inAuthGroup = segments[0] === 'auth';
+    const onResetScreen = segments.join('/').startsWith('auth/reset-password');
+
+    // A recovery session must land on the set-new-password screen first.
+    if (passwordRecovery) {
+      if (!onResetScreen) router.replace('/auth/reset-password');
+      return;
+    }
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/auth/login');
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/');
     }
-  }, [isAuthenticated, initialized, segments, router]);
+  }, [isAuthenticated, initialized, passwordRecovery, segments, router]);
 }
 
 export default function RootLayout() {
@@ -75,6 +83,7 @@ export default function RootLayout() {
       <Stack.Screen name="auth/login" options={{ headerShown: false }} />
       <Stack.Screen name="auth/register" options={{ headerShown: false }} />
       <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
+      <Stack.Screen name="auth/reset-password" options={{ headerShown: false }} />
       <Stack.Screen name="vault/[id]" options={{ headerTitle: 'Memory Vault' }} />
       <Stack.Screen name="beneficiaries/[vaultId]" options={{ headerTitle: 'Beneficiaries' }} />
       <Stack.Screen name="memory/[vaultId]/[id]" options={{ headerTitle: 'Memory' }} />
