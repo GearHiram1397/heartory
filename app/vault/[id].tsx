@@ -13,8 +13,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Share2, Heart, Users } from 'lucide-react-native';
+import { Plus, Share2, Heart, Users, Crown } from 'lucide-react-native';
 import { useMemoryStore } from '@/store/memoryStore';
+import { useAuthStore } from '@/store/authStore';
 import { useActiveTheme } from '@/store/themeStore';
 import { MemoryItem } from '@/components/MemoryItem';
 import { EmptyState } from '@/components/EmptyState';
@@ -38,6 +39,8 @@ export default function VaultDetailScreen() {
   
   const { vaults, fetchVault, isLoading, error } = useMemoryStore();
   const vault = vaults.find((v) => v.id === id);
+  const currentUser = useAuthStore((s) => s.user);
+  const isOwner = !!vault && !!currentUser && vault.ownerId === currentUser.id;
   
   useEffect(() => {
     if (id) {
@@ -191,7 +194,15 @@ export default function VaultDetailScreen() {
             title: vault.name,
             headerRight: () => (
               <View style={styles.headerButtons}>
-                <Pressable 
+                {isOwner && (
+                  <Pressable
+                    style={styles.headerButton}
+                    onPress={() => router.push(`/beneficiaries/${vault.id}`)}
+                  >
+                    <Crown size={20} color={theme.colors.text} />
+                  </Pressable>
+                )}
+                <Pressable
                   style={styles.headerButton}
                   onPress={handleShare}
                 >

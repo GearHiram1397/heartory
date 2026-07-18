@@ -183,6 +183,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          last_active_at: string
           name: string
           push_enabled: boolean
           updated_at: string
@@ -192,6 +193,7 @@ export type Database = {
           created_at?: string
           email: string
           id: string
+          last_active_at?: string
           name?: string
           push_enabled?: boolean
           updated_at?: string
@@ -201,11 +203,62 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          last_active_at?: string
           name?: string
           push_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
+      }
+      vault_beneficiaries: {
+        Row: {
+          access_level: string
+          beneficiary_email: string
+          beneficiary_user_id: string | null
+          created_at: string
+          id: string
+          release_after_days: number | null
+          release_trigger: string
+          released_at: string | null
+          status: string
+          updated_at: string
+          vault_id: string
+        }
+        Insert: {
+          access_level?: string
+          beneficiary_email: string
+          beneficiary_user_id?: string | null
+          created_at?: string
+          id?: string
+          release_after_days?: number | null
+          release_trigger?: string
+          released_at?: string | null
+          status?: string
+          updated_at?: string
+          vault_id: string
+        }
+        Update: {
+          access_level?: string
+          beneficiary_email?: string
+          beneficiary_user_id?: string | null
+          created_at?: string
+          id?: string
+          release_after_days?: number | null
+          release_trigger?: string
+          released_at?: string | null
+          status?: string
+          updated_at?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_beneficiaries_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "vaults"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_tokens: {
         Row: {
@@ -359,6 +412,19 @@ export type Database = {
         Args: { p_vault_id: string; p_email: string; p_role?: string }
         Returns: undefined
       }
+      heartbeat: { Args: Record<string, never>; Returns: undefined }
+      add_beneficiary: {
+        Args: {
+          p_vault_id: string
+          p_email: string
+          p_access_level?: string
+          p_release_trigger?: string
+          p_release_after_days?: number
+        }
+        Returns: Json
+      }
+      release_beneficiary: { Args: { p_id: string }; Returns: undefined }
+      release_due_beneficiaries: { Args: Record<string, never>; Returns: number }
     }
     Enums: {
       [_ in never]: never
