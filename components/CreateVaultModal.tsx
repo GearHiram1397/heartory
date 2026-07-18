@@ -1,22 +1,24 @@
-import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  TextInput, 
-  Pressable, 
-  Modal, 
+import React, { useEffect, useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  Pressable,
+  Modal,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
-import { X } from 'lucide-react-native';
+import { X, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { useMemoryStore } from '@/store/memoryStore';
 import { useActiveTheme } from '@/store/themeStore';
-import { ThemedView } from './ThemedView';
+import { MemoryVault } from '@/types';
 import { ThemedText } from './ThemedText';
 import { ThemedButton } from './ThemedButton';
 import { uploadService } from '@/services/uploadService';
@@ -24,21 +26,35 @@ import { uploadService } from '@/services/uploadService';
 interface CreateVaultModalProps {
   visible: boolean;
   onClose: () => void;
+  // When provided, the modal edits this vault instead of creating a new one.
+  vault?: MemoryVault;
 }
 
-export const CreateVaultModal: React.FC<CreateVaultModalProps> = ({ 
-  visible, 
-  onClose 
+export const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
+  visible,
+  onClose,
+  vault,
 }) => {
+  const isEdit = !!vault;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [coverImage, setCoverImage] = useState<string | undefined>(undefined);
   const [nameError, setNameError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
-  const { addVault, isLoading, error, clearError } = useMemoryStore();
+
+  const { addVault, updateVault, deleteVault, isLoading, error, clearError } = useMemoryStore();
   const theme = useActiveTheme();
+  const router = useRouter();
+
+  // Prefill when opening in edit mode.
+  useEffect(() => {
+    if (visible && vault) {
+      setName(vault.name);
+      setDescription(vault.description ?? '');
+      setCoverImage(vault.coverImage);
+    }
+  }, [visible, vault]);
   
   const handlePickImage = async () => {
     if (Platform.OS !== 'web') {
@@ -87,19 +103,48 @@ export const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
     }
     
     clearError();
-    
+
     try {
-      await addVault({
-        name: name.trim(),
-        description: description.trim(),
-        coverImage,
-      });
-      
+      if (isEdit && vault) {
+        await updateVault(vault.id, {
+          name: name.trim(),
+          description: description.trim(),
+          coverImage,
+        });
+      } else {
+        await addVault({
+          name: name.trim(),
+          description: description.trim(),
+          coverImage,
+        });
+      }
+
       // Reset form and close modal
       handleCancel();
     } catch (err) {
       // Error is handled in the store
     }
+  };
+
+  const handleDelete = () => {
+    if (!vault) return;
+    Alert.alert(
+      'Delete Vault',
+      `Delete “${vault.name}” and all of its memories? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteVault(vault.id);
+            handleCancel();
+            // Leave the (now-deleted) vault screen if we're on it.
+            if (router.canGoBack()) router.back();
+          },
+        },
+      ]
+    );
   };
   
   const handleCancel = () => {
@@ -125,7 +170,7 @@ export const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
       >
         <View style={[styles.modalContent, { backgroundColor: theme.colors.background }]}>
           <View style={styles.header}>
-            <ThemedText preset="title">Create a Memory Vault</ThemedText>
+            <ThemedText preset="title">{isEdit ? 'Edit Vault' : 'Create a Memory Vault'}</ThemedText>
             <TouchableOpacity onPress={handleCancel} style={styles.closeButton}>
               <X size={24} color={theme.colors.text} />
             </TouchableOpacity>
@@ -214,13 +259,26 @@ export const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
                 disabled={isLoading || isUploading}
               />
               <ThemedButton
-                title="Create Vault"
+                title={isEdit ? 'Save Changes' : 'Create Vault'}
                 onPress={handleCreate}
                 buttonStyle={styles.createButton}
                 isLoading={isLoading}
                 disabled={isUploading}
               />
             </View>
+
+            {isEdit && (
+              <TouchableOpacity
+                style={styles.deleteRow}
+                onPress={handleDelete}
+                disabled={isLoading || isUploading}
+              >
+                <Trash2 size={18} color={theme.colors.error} />
+                <ThemedText style={{ color: theme.colors.error, fontWeight: '600' }}>
+                  Delete this vault
+                </ThemedText>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -229,6 +287,15 @@ export const CreateVaultModal: React.FC<CreateVaultModalProps> = ({
 };
 
 const styles = StyleSheet.create({
+  deleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    marginTop: 4,
+    marginBottom: 8,
+  },
   container: {
     flex: 1,
     justifyContent: 'flex-end',

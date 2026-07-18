@@ -13,13 +13,14 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Share2, Heart, Users, Crown } from 'lucide-react-native';
+import { Plus, Share2, Heart, Users, Crown, Pencil } from 'lucide-react-native';
 import { useMemoryStore } from '@/store/memoryStore';
 import { useAuthStore } from '@/store/authStore';
 import { useActiveTheme } from '@/store/themeStore';
 import { MemoryItem } from '@/components/MemoryItem';
 import { EmptyState } from '@/components/EmptyState';
 import { CreateMemoryModal } from '@/components/CreateMemoryModal';
+import { CreateVaultModal } from '@/components/CreateVaultModal';
 import { ShareVaultModal } from '@/components/ShareVaultModal';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -31,6 +32,7 @@ export default function VaultDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>([]);
   const [loadingSharedUsers, setLoadingSharedUsers] = useState(false);
@@ -197,6 +199,14 @@ export default function VaultDetailScreen() {
                 {isOwner && (
                   <Pressable
                     style={styles.headerButton}
+                    onPress={() => setEditModalVisible(true)}
+                  >
+                    <Pencil size={20} color={theme.colors.text} />
+                  </Pressable>
+                )}
+                {isOwner && (
+                  <Pressable
+                    style={styles.headerButton}
                     onPress={() => router.push(`/beneficiaries/${vault.id}`)}
                   >
                     <Crown size={20} color={theme.colors.text} />
@@ -256,6 +266,12 @@ export default function VaultDetailScreen() {
             fetchSharedUsers(); // Refresh shared users after modal closes
           }}
           vaultId={vault.id}
+        />
+
+        <CreateVaultModal
+          visible={editModalVisible}
+          onClose={() => setEditModalVisible(false)}
+          vault={vault}
         />
       </ThemedView>
     </SafeAreaView>

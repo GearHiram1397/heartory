@@ -15,6 +15,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false,
       initialized: false,
+      passwordRecovery: false,
       error: null,
 
       login: async (email: string, password: string) => {
@@ -77,6 +78,21 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      completePasswordReset: async (newPassword: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const { error } = await supabase.auth.updateUser({ password: newPassword });
+          if (error) throw new Error(error.message);
+          set({ passwordRecovery: false, isLoading: false });
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : 'Could not update your password',
+            isLoading: false,
+          });
+          throw error;
+        }
+      },
+
       clearError: () => {
         set({ error: null });
       },
@@ -97,6 +113,12 @@ export const useAuthStore = create<AuthState>()(
         if (!authListenerBound) {
           authListenerBound = true;
           supabase.auth.onAuthStateChange((event, session) => {
+            // The reset-password email link establishes a recovery session and
+            // fires this event — route the user to set a new password.
+            if (event === 'PASSWORD_RECOVERY') {
+              set({ passwordRecovery: true });
+              return;
+            }
             if (event === 'SIGNED_OUT' || !session?.user) {
               set({ user: null, isAuthenticated: false });
               return;
