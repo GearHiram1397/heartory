@@ -179,7 +179,7 @@ export default function ProfileScreen() {
             <ThemedText preset="subtitle">About</ThemedText>
             
             <ThemedCard style={styles.menuCard}>
-              <TouchableOpacity style={styles.menuItem}>
+              <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/about')}>
                 <Heart size={20} color={theme.colors.text} style={styles.menuIcon} />
                 <ThemedText style={styles.menuText}>About Heartory</ThemedText>
               </TouchableOpacity>

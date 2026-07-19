@@ -1,38 +1,66 @@
-import React from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Image, 
-  ScrollView, 
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  View,
+  Image,
+  ScrollView,
   Pressable,
-  Platform,
-  SafeAreaView
+  SafeAreaView,
+  Share,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { ResizeMode, Video } from 'expo-av';
 import { Trash2, Edit, Share2 } from 'lucide-react-native';
 import { useMemoryStore } from '@/store/memoryStore';
 import { useActiveTheme } from '@/store/themeStore';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
+import { AudioPlayer } from '@/components/AudioPlayer';
+import { EditMemoryModal } from '@/components/EditMemoryModal';
 
 export default function MemoryDetailScreen() {
   const { vaultId, id } = useLocalSearchParams<{ vaultId: string; id: string }>();
   const router = useRouter();
   const theme = useActiveTheme();
-  
+  const [editVisible, setEditVisible] = useState(false);
+
   const { vaults, deleteMemory } = useMemoryStore();
   const vault = vaults.find((v) => v.id === vaultId);
   const memory = vault?.memories.find((m) => m.id === id);
-  
+
   if (!vault || !memory) {
     router.back();
     return null;
   }
-  
+
   const handleDelete = () => {
-    deleteMemory(vaultId, id);
-    router.back();
+    Alert.alert('Delete Memory', 'Delete this memory? This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteMemory(vaultId, id);
+          router.back();
+        },
+      },
+    ]);
+  };
+
+  const handleShare = async () => {
+    const isText = memory.type === 'text' || memory.type === 'quote';
+    try {
+      await Share.share({
+        message: isText
+          ? `${memory.content}${memory.caption ? `\n\n— ${memory.caption}` : ''}`
+          : memory.caption || 'A memory from Heartory',
+        url: isText ? undefined : memory.content,
+      });
+    } catch {
+      /* user dismissed */
+    }
   };
   
   const formatDate = (dateString: string) => {
@@ -58,19 +86,16 @@ export default function MemoryDetailScreen() {
           </View>
         );
       case 'video':
-        // In a real app, we would render a video player here
         return (
-          <View style={[styles.videoPlaceholder, { backgroundColor: theme.isDark ? '#000' : '#222' }]}>
-            <ThemedText style={styles.placeholderText}>Video Player</ThemedText>
-          </View>
+          <Video
+            source={{ uri: memory.content }}
+            style={styles.video}
+            useNativeControls
+            resizeMode={ResizeMode.CONTAIN}
+          />
         );
       case 'audio':
-        // In a real app, we would render an audio player here
-        return (
-          <ThemedView variant="secondary" style={styles.audioPlaceholder}>
-            <ThemedText style={styles.placeholderText}>Audio Player</ThemedText>
-          </ThemedView>
-        );
+        return <AudioPlayer uri={memory.content} />;
       case 'text':
         return (
           <View style={styles.textContainer}>
@@ -103,10 +128,10 @@ export default function MemoryDetailScreen() {
             title: memory.caption || 'Memory',
             headerRight: () => (
               <View style={styles.headerButtons}>
-                <Pressable style={styles.headerButton}>
+                <Pressable style={styles.headerButton} onPress={handleShare}>
                   <Share2 size={20} color={theme.colors.text} />
                 </Pressable>
-                <Pressable style={styles.headerButton}>
+                <Pressable style={styles.headerButton} onPress={() => setEditVisible(true)}>
                   <Edit size={20} color={theme.colors.text} />
                 </Pressable>
                 <Pressable style={styles.headerButton} onPress={handleDelete}>
@@ -157,6 +182,13 @@ export default function MemoryDetailScreen() {
             </View>
           </View>
         </ScrollView>
+
+        <EditMemoryModal
+          visible={editVisible}
+          onClose={() => setEditVisible(false)}
+          vaultId={vaultId}
+          memory={memory}
+        />
       </ThemedView>
     </SafeAreaView>
   );
@@ -185,24 +217,10 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  videoPlaceholder: {
+  video: {
     width: '100%',
     height: 300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  audioPlaceholder: {
-    width: '100%',
-    height: 120,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-  },
-  placeholderText: {
-    fontSize: 16,
-    color: '#fff',
+    backgroundColor: '#000',
   },
   textContainer: {
     padding: 16,
