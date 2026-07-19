@@ -20,6 +20,7 @@ import { useActiveTheme } from '@/store/themeStore';
 import { ThemedText } from './ThemedText';
 import { ThemedButton } from './ThemedButton';
 import { uploadService } from '@/services/uploadService';
+import { AudioRecorder } from './AudioRecorder';
 
 interface CreateMemoryModalProps {
   visible: boolean;
@@ -116,6 +117,11 @@ export const CreateMemoryModal: React.FC<CreateMemoryModalProps> = ({
     
     if (!content && (type === 'photo' || type === 'video')) {
       setContentError("Please select a file");
+      return;
+    }
+
+    if (!content && type === 'audio') {
+      setContentError("Please record an audio clip");
       return;
     }
     
@@ -237,15 +243,22 @@ export const CreateMemoryModal: React.FC<CreateMemoryModalProps> = ({
           </View>
         );
       case 'audio':
-        // In a real app, we would implement audio recording here
         return (
-          <View style={[
-            styles.audioPlaceholder,
-            { backgroundColor: theme.colors.backgroundSecondary }
-          ]}>
-            <ThemedText variant="secondary">
-              Audio recording is not implemented in this demo
-            </ThemedText>
+          <View>
+            <AudioRecorder
+              vaultId={vaultId}
+              onUploaded={(path, bytes) => {
+                setContent(path);
+                setMediaBytes(bytes);
+                setContentError('');
+              }}
+              onBusyChange={setIsUploading}
+            />
+            {contentError ? (
+              <ThemedText style={{ color: theme.colors.error, marginTop: -8, marginBottom: 16 }}>
+                {contentError}
+              </ThemedText>
+            ) : null}
           </View>
         );
       default:

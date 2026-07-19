@@ -22,6 +22,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { CreateMemoryModal } from '@/components/CreateMemoryModal';
 import { CreateVaultModal } from '@/components/CreateVaultModal';
 import { ShareVaultModal } from '@/components/ShareVaultModal';
+import { SharedUsersModal } from '@/components/SharedUsersModal';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedCard } from '@/components/ThemedCard';
@@ -33,6 +34,7 @@ export default function VaultDetailScreen() {
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [sharedUsersModalVisible, setSharedUsersModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [sharedUsers, setSharedUsers] = useState<SharedUser[]>([]);
   const [loadingSharedUsers, setLoadingSharedUsers] = useState(false);
@@ -83,23 +85,7 @@ export default function VaultDetailScreen() {
   };
   
   const handleViewSharedUsers = () => {
-    if (sharedUsers.length === 0) {
-      Alert.alert(
-        "No Shared Users",
-        "This vault hasn't been shared with anyone yet.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
-    
-    // Navigate to shared users screen or show modal
-    // For now, just show an alert with the users
-    const userNames = sharedUsers.map(user => user.name).join(', ');
-    Alert.alert(
-      "Shared With",
-      userNames,
-      [{ text: "OK" }]
-    );
+    setSharedUsersModalVisible(true);
   };
   
   if (isLoading && !vault) {
@@ -272,6 +258,15 @@ export default function VaultDetailScreen() {
           visible={editModalVisible}
           onClose={() => setEditModalVisible(false)}
           vault={vault}
+        />
+
+        <SharedUsersModal
+          visible={sharedUsersModalVisible}
+          onClose={() => {
+            setSharedUsersModalVisible(false);
+            fetchSharedUsers();
+          }}
+          vaultId={vault.id}
         />
       </ThemedView>
     </SafeAreaView>
