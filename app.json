@@ -47,7 +47,8 @@
           "origin": "https://rork.com/"
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-av"
     ],
     "experiments": {
       "typedRoutes": true
