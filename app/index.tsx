@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { StyleSheet, View, FlatList, Pressable, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Heart, User, Settings } from 'lucide-react-native';
+import { Plus, Heart, User, Settings, Search } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useMemoryStore } from '@/store/memoryStore';
 import { useAuthStore } from '@/store/authStore';
@@ -59,7 +59,13 @@ export default function HomeScreen() {
               <Heart size={24} color="#fff" />
             </View>
             <View style={styles.headerButtons}>
-              <Pressable 
+              <Pressable
+                style={styles.headerButton}
+                onPress={() => router.push('/search')}
+              >
+                <Search size={20} color="#fff" />
+              </Pressable>
+              <Pressable
                 style={styles.headerButton}
                 onPress={navigateToSettings}
               >

@@ -2,6 +2,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, AppState, View } from 'react-native';
 import { useAuthStore } from '@/store/authStore';
+import { useOnboardingStore } from '@/store/onboardingStore';
 import { notificationService } from '@/services/notificationService';
 import { beneficiaryService } from '@/services/beneficiaryService';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -18,10 +19,12 @@ function useProtectedRoute() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const initialized = useAuthStore((s) => s.initialized);
   const passwordRecovery = useAuthStore((s) => s.passwordRecovery);
+  const onboardingCompleted = useOnboardingStore((s) => s.completed);
 
   useEffect(() => {
     if (!initialized) return;
     const inAuthGroup = segments[0] === 'auth';
+    const onOnboarding = segments[0] === 'onboarding';
     const onResetScreen = segments.join('/').startsWith('auth/reset-password');
 
     // A recovery session must land on the set-new-password screen first.
@@ -30,12 +33,19 @@ function useProtectedRoute() {
       return;
     }
 
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/auth/login');
-    } else if (isAuthenticated && inAuthGroup) {
-      router.replace('/');
+    if (!isAuthenticated) {
+      // First-run: show onboarding before the auth screens.
+      if (!onboardingCompleted) {
+        if (!onOnboarding) router.replace('/onboarding');
+        return;
+      }
+      if (!inAuthGroup && !onOnboarding) router.replace('/auth/login');
+      return;
     }
-  }, [isAuthenticated, initialized, passwordRecovery, segments, router]);
+
+    // Authenticated users never see auth/onboarding screens.
+    if (inAuthGroup || onOnboarding) router.replace('/');
+  }, [isAuthenticated, initialized, passwordRecovery, onboardingCompleted, segments, router]);
 }
 
 export default function RootLayout() {
@@ -80,6 +90,7 @@ export default function RootLayout() {
     <ErrorBoundary>
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="onboarding" options={{ headerShown: false }} />
       <Stack.Screen name="auth/login" options={{ headerShown: false }} />
       <Stack.Screen name="auth/register" options={{ headerShown: false }} />
       <Stack.Screen name="auth/forgot-password" options={{ headerShown: false }} />
@@ -94,6 +105,7 @@ export default function RootLayout() {
       <Stack.Screen name="invite" options={{ headerTitle: 'Invite Friends' }} />
       <Stack.Screen name="two-factor" options={{ headerTitle: 'Two-Factor Authentication' }} />
       <Stack.Screen name="about" options={{ headerTitle: 'About Heartory' }} />
+      <Stack.Screen name="search" options={{ headerTitle: 'Search' }} />
       <Stack.Screen name="legal/privacy" options={{ headerTitle: 'Privacy Policy' }} />
       <Stack.Screen name="legal/terms" options={{ headerTitle: 'Terms of Service' }} />
     </Stack>
