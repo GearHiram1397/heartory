@@ -28,13 +28,17 @@ export default function InviteScreen() {
   const [emailError, setEmailError] = useState('');
   const [isSending, setIsSending] = useState(false);
   
-  const { 
-    referralInfo, 
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+
+  const {
+    referralInfo,
     fetchReferralInfo,
     inviteFriend,
-    isLoading, 
-    error, 
-    clearError 
+    redeemReferralCode,
+    isLoading,
+    error,
+    clearError
   } = useSubscriptionStore();
   
   const router = useRouter();
@@ -74,6 +78,24 @@ export default function InviteScreen() {
     setEmailError('');
   };
   
+  const handleRedeem = async () => {
+    if (!redeemCode.trim()) return;
+    setRedeeming(true);
+    clearError();
+    try {
+      await redeemReferralCode(redeemCode.trim());
+      if (!useSubscriptionStore.getState().error) {
+        setRedeemCode('');
+        await fetchReferralInfo();
+        Alert.alert('Success', 'Referral code applied. Enjoy your reward!');
+      } else {
+        Alert.alert('Referral', useSubscriptionStore.getState().error || 'Could not apply that code.');
+      }
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
   const handleRemoveEmail = (email: string) => {
     if (Platform.OS !== 'web') {
       Haptics.selectionAsync();
@@ -207,7 +229,36 @@ export default function InviteScreen() {
               </View>
             </ThemedCard>
           )}
-          
+
+          {referralInfo && !referralInfo.hasClaimedFreeMonth && (
+            <ThemedCard style={styles.referralCard}>
+              <ThemedText preset="subtitle">Have a referral code?</ThemedText>
+              <ThemedText variant="secondary" style={{ marginTop: 4, marginBottom: 12 }}>
+                Enter a friend's code to claim your reward.
+              </ThemedText>
+              <View style={styles.codeContainer}>
+                <View style={[styles.codeBox, { backgroundColor: theme.colors.backgroundSecondary }]}>
+                  <TextInput
+                    style={[styles.codeText, { flex: 1, color: theme.colors.text }]}
+                    value={redeemCode}
+                    onChangeText={(t) => setRedeemCode(t.toUpperCase())}
+                    placeholder="ENTER CODE"
+                    placeholderTextColor={theme.colors.textSecondary}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={handleRedeem}
+                  disabled={redeeming || !redeemCode.trim()}
+                  style={[styles.shareButton, { backgroundColor: theme.colors.primary, opacity: redeeming || !redeemCode.trim() ? 0.5 : 1 }]}
+                >
+                  <ThemedText style={{ color: '#fff', fontWeight: '600' }}>Apply</ThemedText>
+                </TouchableOpacity>
+              </View>
+            </ThemedCard>
+          )}
+
           <View style={styles.inviteSection}>
             <ThemedText preset="subtitle">Send Email Invitations</ThemedText>
             

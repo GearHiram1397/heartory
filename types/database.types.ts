@@ -186,6 +186,7 @@ export type Database = {
           last_active_at: string
           name: string
           push_enabled: boolean
+          referral_code: string | null
           updated_at: string
         }
         Insert: {
@@ -196,6 +197,7 @@ export type Database = {
           last_active_at?: string
           name?: string
           push_enabled?: boolean
+          referral_code?: string | null
           updated_at?: string
         }
         Update: {
@@ -206,7 +208,32 @@ export type Database = {
           last_active_at?: string
           name?: string
           push_enabled?: boolean
+          referral_code?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_id: string
+          reward_granted: boolean
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_id: string
+          reward_granted?: boolean
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_id?: string
+          reward_granted?: boolean
         }
         Relationships: []
       }
@@ -425,6 +452,12 @@ export type Database = {
       }
       release_beneficiary: { Args: { p_id: string }; Returns: undefined }
       release_due_beneficiaries: { Args: Record<string, never>; Returns: number }
+      ensure_referral_code: { Args: Record<string, never>; Returns: string }
+      redeem_referral: { Args: { p_code: string }; Returns: undefined }
+      referral_stats: {
+        Args: Record<string, never>
+        Returns: { referrals_count: number; has_claimed: boolean }[]
+      }
     }
     Enums: {
       [_ in never]: never
