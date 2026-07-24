@@ -6,6 +6,7 @@ import { SUBSCRIPTION_PLANS, ANNUAL_SUBSCRIPTION_PLANS } from '@/constants/subsc
 // Monetization actions (subscribe/cancel/referrals) remain mocked until the
 // Stripe integration lands in Phase 1. Reads below are backed by Supabase.
 const BYTES_PER_MB = 1024 * 1024;
+const REFERRAL_BASE_URL = process.env.EXPO_PUBLIC_REFERRAL_URL ?? 'https://heartory.app/refer';
 
 export const subscriptionService = {
   // Plan catalog is static marketing/config data (features, pricing tiers).
@@ -79,19 +80,46 @@ export const subscriptionService = {
     return mockApiService.subscription.updateAutoRenew(autoRenew);
   },
 
+  // --- Referrals (real, backed by Postgres). Reward fulfilment (free months)
+  // is applied via Stripe coupons out-of-band; the counts drive it. ---
   getReferralInfo: async (): Promise<ReferralInfo | null> => {
-    return mockApiService.subscription.getReferralInfo();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: code, error: codeErr } = await supabase.rpc('ensure_referral_code');
+    if (codeErr) throw new Error(codeErr.message);
+
+    const { data: stats } = await supabase.rpc('referral_stats');
+    const row = Array.isArray(stats) ? stats[0] : undefined;
+    const count = row?.referrals_count ?? 0;
+
+    return {
+      code: code as string,
+      referralsCount: count,
+      referralLink: `${REFERRAL_BASE_URL}/${code}`,
+      freeMonthsEarned: count,
+      hasClaimedFreeMonth: row?.has_claimed ?? false,
+    };
   },
 
   generateReferralCode: async (): Promise<string> => {
-    return mockApiService.subscription.generateReferralCode();
+    // Codes are stable per user; this returns the existing one (creating it
+    // on first use).
+    const { data, error } = await supabase.rpc('ensure_referral_code');
+    if (error) throw new Error(error.message);
+    return data as string;
   },
 
-  inviteFriend: async (email: string): Promise<void> => {
-    return mockApiService.subscription.inviteFriend(email);
+  inviteFriend: async (_email: string): Promise<void> => {
+    // The invite itself is delivered via the share sheet in the UI; the
+    // referral is recorded server-side when the invitee redeems the code.
+    return;
   },
 
   redeemReferralCode: async (code: string): Promise<void> => {
-    return mockApiService.subscription.redeemReferralCode(code);
+    const { error } = await supabase.rpc('redeem_referral', { p_code: code });
+    if (error) throw new Error(error.message);
   },
 };
