@@ -9,6 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { X, User, Camera } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -41,15 +42,27 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
     }
   }, [visible, user]);
 
-  const pickAvatar = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
+  const captureAvatar = async (source: 'camera' | 'library') => {
+    const options: ImagePicker.ImagePickerOptions = {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
-    });
+    };
+    let result: ImagePicker.ImagePickerResult;
+    if (source === 'camera') {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        setError('Camera permission is needed to take a photo.');
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync(options);
+    } else {
+      result = await ImagePicker.launchImageLibraryAsync(options);
+    }
     if (result.canceled || !result.assets?.length) return;
     setUploading(true);
+    setError('');
     try {
       setAvatar(await uploadService.uploadCoverImage(result.assets[0].uri));
     } catch (e) {
@@ -57,6 +70,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onC
     } finally {
       setUploading(false);
     }
+  };
+
+  const pickAvatar = () => {
+    if (Platform.OS === 'web') return captureAvatar('library');
+    Alert.alert('Profile photo', undefined, [
+      { text: 'Take Photo', onPress: () => captureAvatar('camera') },
+      { text: 'Choose from Library', onPress: () => captureAvatar('library') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
   };
 
   const save = async () => {
