@@ -9,7 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { X, Image as ImageIcon, FileText, Mic, Quote, Video } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -48,66 +49,70 @@ export const CreateMemoryModal: React.FC<CreateMemoryModalProps> = ({
   const { addMemory, isLoading, error, clearError } = useMemoryStore();
   const theme = useActiveTheme();
   
+  // Pick or capture media from the chosen source, then upload it.
+  const pickFrom = async (source: 'camera' | 'library') => {
+    const options: ImagePicker.ImagePickerOptions = {
+      mediaTypes: type === 'video' ? ImagePicker.MediaTypeOptions.Videos : ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === 'video' ? [16, 9] : [4, 3],
+      quality: 0.8,
+    };
+
+    let result: ImagePicker.ImagePickerResult;
+    if (source === 'camera') {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        setContentError('Camera permission is needed to take a photo or video.');
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync(options);
+    } else {
+      result = await ImagePicker.launchImageLibraryAsync(options);
+    }
+
+    if (result.canceled || !result.assets?.length) return;
+
+    try {
+      setIsUploading(true);
+      setContentError('');
+      // Upload to the private vault bucket; the returned path becomes the
+      // memory content and the byte size feeds quota checks.
+      const upload = type === 'video' ? uploadService.uploadVideo : uploadService.uploadImage;
+      const uploaded = await upload(vaultId, result.assets[0].uri, (p) =>
+        setUploadProgress(p.progress)
+      );
+      setContent(uploaded.path);
+      setMediaBytes(uploaded.bytes);
+    } catch (error) {
+      console.error('Media upload error:', error);
+      setContentError('Failed to upload media. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   const handlePickMedia = async () => {
     if (Platform.OS !== 'web') {
       await Haptics.selectionAsync();
     }
-    
-    let result;
-    
-    if (type === 'photo') {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 0.8,
-      });
-    } else if (type === 'video') {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-      });
+    // Web can't use the device camera here — go straight to the file picker.
+    if (Platform.OS === 'web') {
+      pickFrom('library');
+      return;
     }
-    
-    if (!result?.canceled && result?.assets && result.assets.length > 0) {
-      try {
-        setIsUploading(true);
-        setContentError('');
-        
-        // Upload the media to the private vault bucket. The returned storage
-        // path becomes the memory content; the byte size feeds quota checks.
-        let uploaded;
-
-        if (type === 'photo') {
-          uploaded = await uploadService.uploadImage(
-            vaultId,
-            result.assets[0].uri,
-            (progress) => {
-              setUploadProgress(progress.progress);
-            }
-          );
-        } else if (type === 'video') {
-          uploaded = await uploadService.uploadVideo(
-            vaultId,
-            result.assets[0].uri,
-            (progress) => {
-              setUploadProgress(progress.progress);
-            }
-          );
-        }
-
-        setContent(uploaded?.path || '');
-        setMediaBytes(uploaded?.bytes || 0);
-      } catch (error) {
-        console.error('Media upload error:', error);
-        setContentError('Failed to upload media. Please try again.');
-      } finally {
-        setIsUploading(false);
-        setUploadProgress(0);
-      }
-    }
+    Alert.alert(
+      type === 'video' ? 'Add a video' : 'Add a photo',
+      undefined,
+      [
+        {
+          text: type === 'video' ? 'Record Video' : 'Take Photo',
+          onPress: () => pickFrom('camera'),
+        },
+        { text: 'Choose from Library', onPress: () => pickFrom('library') },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
   
   const handleCreate = async () => {
