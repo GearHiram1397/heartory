@@ -19,7 +19,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'premium',
     name: 'Premium',
     description: 'Enhanced storage for your precious memories',
-    price: 4.99,
+    price: 6.99,
     interval: 'month',
     storageLimit: 5000, // 5 GB
     features: [
@@ -36,7 +36,7 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     id: 'pro',
     name: 'Pro',
     description: 'Ultimate memory preservation experience',
-    price: 9.99,
+    price: 12.99,
     interval: 'month',
     storageLimit: 20000, // 20 GB
     features: [
@@ -51,16 +51,37 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   }
 ];
 
-// Annual plans (20% discount)
-export const ANNUAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = SUBSCRIPTION_PLANS.map(plan => {
-  if (plan.id === 'free') return plan;
-  
-  return {
-    ...plan,
-    interval: 'year',
-    price: Math.round(plan.price * 12 * 0.8 * 100) / 100, // 20% discount, rounded to 2 decimal places
-  };
-});
+// Explicit annual prices (better than a flat %: Premium ~30% off, Pro ~24% off).
+const ANNUAL_PRICE: Record<string, number> = {
+  premium: 59,
+  pro: 119,
+};
+
+export const ANNUAL_SUBSCRIPTION_PLANS: SubscriptionPlan[] = SUBSCRIPTION_PLANS.filter(
+  (p) => p.id !== 'free'
+).map((plan) => ({
+  ...plan,
+  interval: 'year',
+  price: ANNUAL_PRICE[plan.id] ?? Math.round(plan.price * 12 * 0.8 * 100) / 100,
+}));
+
+// The "forever" tier: a one-time payment that funds a long-term storage reserve
+// so these memories outlive the subscription. The differentiator in grief-tech.
+export const LEGACY_PLAN: SubscriptionPlan = {
+  id: 'legacy',
+  name: 'Legacy',
+  description: 'Keep these memories forever — one payment, no subscription',
+  price: 249,
+  interval: 'lifetime',
+  storageLimit: 20000, // 20 GB
+  features: [
+    'Everything in Pro, forever',
+    'One payment — never billed again',
+    '20 GB, funded by a long-term storage reserve',
+    'Pass vaults on to your beneficiaries',
+    'Priority support for life',
+  ],
+};
 
 export const formatStorageSize = (sizeInMB: number): string => {
   if (sizeInMB < 1000) {
@@ -70,8 +91,11 @@ export const formatStorageSize = (sizeInMB: number): string => {
   }
 };
 
-export const formatPrice = (price: number, interval: 'month' | 'year'): string => {
+export const formatPrice = (
+  price: number,
+  interval: 'month' | 'year' | 'lifetime'
+): string => {
   if (price === 0) return 'Free';
-  
+  if (interval === 'lifetime') return `$${price} once`;
   return `$${price}${interval === 'month' ? '/mo' : '/yr'}`;
 };

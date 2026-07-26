@@ -3,7 +3,7 @@ export interface SubscriptionPlan {
     name: string;
     description: string;
     price: number;
-    interval: 'month' | 'year';
+    interval: 'month' | 'year' | 'lifetime';
     storageLimit: number; // in MB
     features: string[];
     isPopular?: boolean;

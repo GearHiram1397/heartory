@@ -11,13 +11,13 @@ import {
   TouchableOpacity
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { CreditCard, Shield, ChevronRight, AlertCircle } from 'lucide-react-native';
+import { CreditCard, Shield, ChevronRight, AlertCircle, Crown, Check, Infinity as InfinityIcon } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useBillingStore } from '@/store/billingStore';
 import { useActiveTheme } from '@/store/themeStore';
 import { SubscriptionPlan } from '@/types/subscription';
-import { SUBSCRIPTION_PLANS, ANNUAL_SUBSCRIPTION_PLANS } from '@/constants/subscriptions';
+import { SUBSCRIPTION_PLANS, ANNUAL_SUBSCRIPTION_PLANS, LEGACY_PLAN } from '@/constants/subscriptions';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedButton } from '@/components/ThemedButton';
@@ -112,6 +112,28 @@ export default function SubscriptionScreen() {
       );
       await WebBrowser.openBrowserAsync(url);
       // The Stripe webhook is the source of truth; refresh after returning.
+      await fetchCurrentSubscription();
+    } catch (error) {
+      Alert.alert(
+        'Checkout',
+        error instanceof Error ? error.message : 'Could not start checkout. Please try again.'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGetLegacy = async () => {
+    if (currentSubscription?.planId === 'legacy') {
+      Alert.alert('Legacy', 'You already have lifetime access. Thank you.');
+      return;
+    }
+    if (Platform.OS !== 'web') Haptics.selectionAsync();
+    setIsProcessing(true);
+    clearSubscriptionError();
+    try {
+      const url = await subscriptionService.startCheckout('legacy', 'lifetime');
+      await WebBrowser.openBrowserAsync(url);
       await fetchCurrentSubscription();
     } catch (error) {
       Alert.alert(
@@ -301,7 +323,7 @@ export default function SubscriptionScreen() {
               <ThemedText style={isAnnual ? styles.activeText : styles.inactiveText}>Annual</ThemedText>
               {isAnnual && (
                 <ThemedText style={[styles.savingsText, { color: theme.colors.success }]}>
-                  Save 20%
+                  Save up to 30%
                 </ThemedText>
               )}
             </View>
@@ -316,14 +338,46 @@ export default function SubscriptionScreen() {
             ))}
             
             <ThemedButton
-              title={currentSubscription?.planId === selectedPlanId && currentSubscription?.status === 'active' 
-                ? "Confirm Plan" 
+              title={currentSubscription?.planId === selectedPlanId && currentSubscription?.status === 'active'
+                ? "Confirm Plan"
                 : "Subscribe Now"}
               onPress={handleSubscribe}
               isLoading={isProcessing}
               leftIcon={<CreditCard size={18} color="#FFFFFF" />}
               disabled={!selectedPlanId}
             />
+
+            {/* Legacy (lifetime) — the "forever" tier, sold once. */}
+            <View style={[styles.legacyCard, { borderColor: theme.colors.primary, backgroundColor: `${theme.colors.primary}0D` }]}>
+              <View style={styles.legacyHeader}>
+                <Crown size={22} color={theme.colors.primary} />
+                <ThemedText preset="subtitle" style={{ marginLeft: 8 }}>{LEGACY_PLAN.name}</ThemedText>
+                <View style={[styles.foreverPill, { backgroundColor: theme.colors.primary }]}>
+                  <InfinityIcon size={12} color="#fff" />
+                  <ThemedText style={styles.foreverText}>Forever</ThemedText>
+                </View>
+              </View>
+              <ThemedText variant="secondary" style={styles.legacyDesc}>
+                {LEGACY_PLAN.description}
+              </ThemedText>
+              <ThemedText style={styles.legacyPrice}>
+                ${LEGACY_PLAN.price}{' '}
+                <ThemedText variant="secondary" style={styles.legacyPriceNote}>one-time</ThemedText>
+              </ThemedText>
+              {LEGACY_PLAN.features.map((f) => (
+                <View key={f} style={styles.legacyFeature}>
+                  <Check size={16} color={theme.colors.primary} />
+                  <ThemedText style={styles.legacyFeatureText}>{f}</ThemedText>
+                </View>
+              ))}
+              <ThemedButton
+                title={currentSubscription?.planId === 'legacy' ? 'You have Legacy' : 'Get Lifetime Access'}
+                onPress={handleGetLegacy}
+                isLoading={isProcessing}
+                disabled={currentSubscription?.planId === 'legacy'}
+                buttonStyle={{ marginTop: 12 }}
+              />
+            </View>
           </View>
         </ScrollView>
       </ThemedView>
@@ -395,6 +449,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  legacyCard: {
+    marginTop: 24,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    padding: 20,
+  },
+  legacyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  foreverPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  foreverText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  legacyDesc: { marginBottom: 12, lineHeight: 20 },
+  legacyPrice: { fontSize: 30, fontWeight: '800', marginBottom: 14 },
+  legacyPriceNote: { fontSize: 14, fontWeight: '400' },
+  legacyFeature: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  legacyFeatureText: { flex: 1, fontSize: 14 },
   plansContainer: {
     marginBottom: 16,
   },

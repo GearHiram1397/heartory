@@ -18,14 +18,24 @@ servers. Stripe **webhooks** are the source of truth for subscription state.
   `CheckoutModal` were **deleted**. `subscriptionService.startCheckout()` /
   `openBillingPortalUrl()` call the edge functions.
 
+## Recommended pricing (already set in the app + migration 0012)
+| Plan | Monthly | Annual | One-time | Storage |
+|---|---|---|---|---|
+| Premium | $6.99/mo | $59/yr | — | 5 GB |
+| Pro | $12.99/mo | $119/yr | — | 20 GB |
+| **Legacy** | — | — | **$249 once** | 20 GB |
+
 ## Manual configuration (you do this once)
-1. **Create products/prices in Stripe** for Premium and Pro, each with a monthly
-   and an annual price. Copy the Price IDs.
+1. **Create products/prices in Stripe**: Premium and Pro each with a monthly and an
+   annual price, plus a **one-time** price for Legacy ($249). Copy the Price IDs.
 2. **Store the Price IDs** on the plans:
    ```sql
    update public.plans set stripe_price_id_month='price_...', stripe_price_id_year='price_...' where id='premium';
    update public.plans set stripe_price_id_month='price_...', stripe_price_id_year='price_...' where id='pro';
+   update public.plans set stripe_price_id_lifetime='price_...' where id='legacy';
    ```
+   (Legacy checks out in Stripe `mode: payment`; the stripe-checkout function
+   handles this automatically based on the `lifetime` interval.)
 3. **Deploy the functions**:
    ```sh
    supabase functions deploy stripe-checkout
