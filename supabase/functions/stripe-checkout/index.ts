@@ -42,11 +42,16 @@ Deno.serve(async (req) => {
     // Resolve the Stripe price for the requested plan/interval.
     const { data: plan } = await supabase
       .from('plans')
-      .select('stripe_price_id_month, stripe_price_id_year')
+      .select('stripe_price_id_month, stripe_price_id_year, stripe_price_id_lifetime')
       .eq('id', planId)
       .single();
-    const priceId =
-      interval === 'year' ? plan?.stripe_price_id_year : plan?.stripe_price_id_month;
+
+    const isLifetime = interval === 'lifetime';
+    const priceId = isLifetime
+      ? plan?.stripe_price_id_lifetime
+      : interval === 'year'
+      ? plan?.stripe_price_id_year
+      : plan?.stripe_price_id_month;
     if (!priceId) {
       return json({ error: 'This plan is not available for purchase yet.' }, 400);
     }
@@ -71,14 +76,17 @@ Deno.serve(async (req) => {
         .eq('user_id', user.id);
     }
 
+    // Lifetime (Legacy) is a one-time payment; everything else is a subscription.
     const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
+      mode: isLifetime ? 'payment' : 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: successUrl ?? 'heartory://subscription?checkout=success',
       cancel_url: cancelUrl ?? 'heartory://subscription?checkout=cancel',
       metadata: { supabase_user_id: user.id, plan_id: planId },
-      subscription_data: { metadata: { supabase_user_id: user.id, plan_id: planId } },
+      ...(isLifetime
+        ? { payment_intent_data: { metadata: { supabase_user_id: user.id, plan_id: planId } } }
+        : { subscription_data: { metadata: { supabase_user_id: user.id, plan_id: planId } } }),
       allow_promotion_codes: true,
     });
 

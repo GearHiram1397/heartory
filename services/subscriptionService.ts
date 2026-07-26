@@ -1,7 +1,7 @@
 import { SubscriptionPlan, UserSubscription, ReferralInfo } from '@/types/subscription';
 import { mockApiService } from './mockService';
 import { supabase } from '@/lib/supabase';
-import { SUBSCRIPTION_PLANS, ANNUAL_SUBSCRIPTION_PLANS } from '@/constants/subscriptions';
+import { SUBSCRIPTION_PLANS, ANNUAL_SUBSCRIPTION_PLANS, LEGACY_PLAN } from '@/constants/subscriptions';
 
 // Monetization actions (subscribe/cancel/referrals) remain mocked until the
 // Stripe integration lands in Phase 1. Reads below are backed by Supabase.
@@ -11,7 +11,7 @@ const REFERRAL_BASE_URL = process.env.EXPO_PUBLIC_REFERRAL_URL ?? 'https://heart
 export const subscriptionService = {
   // Plan catalog is static marketing/config data (features, pricing tiers).
   getPlans: async (): Promise<SubscriptionPlan[]> => {
-    return [...SUBSCRIPTION_PLANS, ...ANNUAL_SUBSCRIPTION_PLANS];
+    return [...SUBSCRIPTION_PLANS, ...ANNUAL_SUBSCRIPTION_PLANS, LEGACY_PLAN];
   },
 
   // The user's actual subscription + real storage usage, from Postgres.
@@ -44,7 +44,10 @@ export const subscriptionService = {
   // Returns a Stripe Checkout URL for the app to open in a browser. Card data
   // never touches our servers. Webhooks are the source of truth for the
   // resulting subscription state.
-  startCheckout: async (planId: string, interval: 'month' | 'year'): Promise<string> => {
+  startCheckout: async (
+    planId: string,
+    interval: 'month' | 'year' | 'lifetime'
+  ): Promise<string> => {
     const { data, error } = await supabase.functions.invoke('stripe-checkout', {
       body: { planId, interval },
     });
