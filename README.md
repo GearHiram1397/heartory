@@ -21,6 +21,7 @@ the phase docs in [`docs/`](./docs):
 - **Phase 3** — push notifications ([docs](docs/PHASE-3-NOTIFICATIONS.md))
 - **Phase 4** — CI, error tracking, performance ([docs](docs/PHASE-4-OPS.md))
 - **Phase 5** — launch prep ([checklist](docs/LAUNCH-CHECKLIST.md))
+- **[Atom Knowledge Base](knowledge/README.md)** — version-controlled product facts, operating rules, and response playbooks for Heartory’s future product assistant
 
 ---
 
@@ -32,6 +33,7 @@ components/      UI components
 store/           Zustand stores (auth, memory, subscription, theme, billing)
 services/        data + integration layer (Supabase, Stripe, notifications, compliance)
 lib/             supabase client, monitoring, analytics
+knowledge/        Atom product facts, response playbooks, and governance
 supabase/
   migrations/    version-controlled schema (source of truth)
   functions/     Deno Edge Functions (Stripe, GDPR, notifications)

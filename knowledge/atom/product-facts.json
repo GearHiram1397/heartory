@@ -1,0 +1,167 @@
+{
+  "knowledge_base": {
+    "name": "Heartory Atom Product Facts",
+    "version": "1.0.0",
+    "maintained_at": "2026-08-15",
+    "usage": "Use these facts only with the status and safety rules in atom-operating-guide.md. Do not transform implemented repository code into a production-availability claim without deployment verification."
+  },
+  "product": {
+    "name": "Heartory",
+    "positioning": "A private, emotionally driven memory-preservation app for mobile and web.",
+    "core_job": "Help people store, revisit, organize, and share meaningful memories of loved ones.",
+    "platform": {
+      "status": "implemented—verify deployment",
+      "technology": "Expo React Native application with Expo Router; Supabase provides Postgres, Auth, Storage, and Edge Functions."
+    }
+  },
+  "feature_states": {
+    "authentication": {
+      "status": "implemented—verify deployment",
+      "capabilities": [
+        "Email and password authentication",
+        "Email confirmation",
+        "Optional TOTP two-factor authentication",
+        "Password reset flow"
+      ]
+    },
+    "vaults": {
+      "status": "implemented—verify deployment",
+      "capabilities": [
+        "Create memory vaults",
+        "Edit and delete owner vaults",
+        "Assign a name, description, and optional cover image",
+        "Store vaults under an authenticated owner"
+      ]
+    },
+    "memories": {
+      "status": "implemented—verify deployment",
+      "supported_types": ["photo", "video", "audio", "text", "quote"],
+      "organization": ["caption", "memory date", "tags"],
+      "notes": [
+        "Video and audio are restricted by the plan's media permission.",
+        "Memory media is stored in a private storage bucket and accessed through authorization-aware policies."
+      ]
+    },
+    "sharing": {
+      "status": "implemented—verify deployment",
+      "roles": {
+        "viewer": "May access a shared vault but is not granted edit rights.",
+        "editor": "May access and edit a shared vault; ownership remains with the owner unless a beneficiary ownership release occurs."
+      }
+    },
+    "beneficiaries": {
+      "status": "implemented—verify deployment",
+      "capabilities": [
+        "Owner may name a beneficiary by email.",
+        "Owner may designate view access or ownership transfer.",
+        "Release can be manual or based on configured owner inactivity.",
+        "The beneficiary must have a Heartory account before access can be granted."
+      ],
+      "boundaries": [
+        "The feature does not replace a will, estate plan, legal authority, or identity-verification process.",
+        "Whether inactivity sweeps operate in production depends on deployment and scheduling of the release-beneficiaries Edge Function."
+      ]
+    },
+    "data_rights": {
+      "status": "implemented—verify deployment",
+      "capabilities": [
+        "Self-service export of a user's data as a downloadable JSON bundle.",
+        "Self-service account deletion that removes storage objects and deletes the authenticated user, with related rows cascading under the documented schema."
+      ]
+    },
+    "security": {
+      "status": "implemented—verify deployment",
+      "capabilities": [
+        "Row-Level Security on core data tables.",
+        "Authorization-aware private memory storage policies.",
+        "Audit logging for selected sensitive operations.",
+        "TLS in transit and provider-managed encryption at rest, according to the compliance documentation."
+      ],
+      "not_supported": [
+        "Do not claim client-side or end-to-end encryption; it is documented as a future decision."
+      ]
+    },
+    "billing": {
+      "status": "implemented—verify deployment",
+      "capabilities": [
+        "Stripe Checkout",
+        "Stripe Billing Portal",
+        "Stripe webhook as the billing source of truth"
+      ],
+      "boundaries": [
+        "Atom may explain plans but must not claim to issue refunds, make billing changes, or confirm account-specific billing status without authorized integration."
+      ]
+    },
+    "search": {
+      "status": "implemented—verify deployment",
+      "capabilities": [
+        "Client-side search across vault names and memory text, captions, tags, and quotes."
+      ],
+      "boundaries": [
+        "Do not describe search as AI-powered, semantic, server-wide, or content-transcribing."
+      ]
+    }
+  },
+  "plans": {
+    "free": {
+      "status": "implemented—verify deployment",
+      "price": { "amount_usd": 0, "billing_type": "monthly" },
+      "storage_limit_mb": 500,
+      "max_vaults": 3,
+      "max_shares_per_vault": 2,
+      "video_and_audio_allowed": false
+    },
+    "premium": {
+      "status": "implemented—verify deployment",
+      "price": { "amount_usd": 6.99, "billing_type": "monthly" },
+      "storage_limit_mb": 5000,
+      "max_vaults": null,
+      "max_shares_per_vault": 10,
+      "video_and_audio_allowed": true
+    },
+    "pro": {
+      "status": "implemented—verify deployment",
+      "price": { "amount_usd": 12.99, "billing_type": "monthly" },
+      "storage_limit_mb": 20000,
+      "max_vaults": null,
+      "max_shares_per_vault": null,
+      "video_and_audio_allowed": true
+    },
+    "legacy": {
+      "status": "implemented—verify deployment",
+      "price": { "amount_usd": 249, "billing_type": "one-time" },
+      "storage_limit_mb": 20000,
+      "max_vaults": null,
+      "max_shares_per_vault": null,
+      "video_and_audio_allowed": true,
+      "customer_facing_description": "Keep these memories forever — one payment, no subscription.",
+      "required_disclaimer": "Do not convert this plan description into a legal, unconditional, or perpetual-storage guarantee."
+    }
+  },
+  "approved_help_topics": [
+    "Creating and organizing a memory vault",
+    "Adding photos, videos, audio, text, and quotes",
+    "Captions, dates, tags, and basic search",
+    "Sharing a vault with a viewer or editor",
+    "Understanding plans and limits",
+    "Beneficiary setup and its documented boundaries",
+    "Data export, account deletion, and two-factor authentication",
+    "Finding verified support for sensitive account issues"
+  ],
+  "disallowed_claims": [
+    "Atom has access to a customer's vault or account by default.",
+    "Heartory uses end-to-end encryption.",
+    "The Legacy plan guarantees memories will be stored forever under every circumstance.",
+    "Beneficiary setup creates or replaces legal inheritance rights.",
+    "Atom can complete account, payment, beneficiary, or privacy actions without authenticated authorized tooling.",
+    "A repository feature is live in production without verification."
+  ],
+  "source_files": [
+    "../../README.md",
+    "../../supabase/migrations/0001_initial_schema.sql",
+    "../../supabase/migrations/0010_beneficiaries.sql",
+    "../../supabase/migrations/0012_pricing_and_legacy.sql",
+    "../../docs/PHASE-2-COMPLIANCE.md",
+    "../../app/search.tsx"
+  ]
+}
